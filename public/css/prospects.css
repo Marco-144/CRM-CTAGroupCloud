@@ -1,0 +1,148 @@
+.prospects-view {
+    font-family: 'Inter', sans-serif;
+}
+
+/* HEADER */
+.prospects-view h4 {
+    font-weight: 600;
+    color: #2c2c2c;
+}
+
+/* Boton agregar */
+.prospects-view .btn-primary {
+    background-color: #6c5ce7;
+    font-weight: 500;
+    border: none;
+    padding: 8px 10px;
+    transition: all 0.2s ease;
+}
+
+.prospects-view .btn-primary:hover {
+    background-color: #5a4dcf;
+}
+
+/* KPI CARDS */
+.prospects-view .card {
+    background: #ffffff;
+    border-radius: 16px;
+}
+
+.prospects-view .icon-circle {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    border-radius: 50%;
+    align-items: center;
+    justify-content: center;
+}
+
+/* CARD TABLA */
+.prospects-view .card {
+    border-radius: 20px;
+}
+
+/* Header tabla */
+.prospects-view .card h4 {
+    font-size: 18px;
+    margin-bottom: 0;
+}
+
+.prospects-view .card small {
+    color: #6e7d6c;
+}
+
+.prospects-view .card .subtitle {
+    margin-top: 0;
+    color: #3fc72d;
+}
+
+/* BUSCADOR Y FILTRO */
+.prospects-view #searchInput {
+    border-radius: 10px;
+    padding: 8px 12px;
+    border: 1px solid #e5e7eb;
+}
+
+.prospects-view .form-select {
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+}
+
+/* TABLA */
+.prospects-view table {
+    margin-top: 20px;
+}
+
+.prospects-view thead th {
+    font-size: 13px;
+    font-weight: 600;
+    color: #9ca3af;
+    text-transform: uppercase;
+    border-bottom: 2px solid #f1f1f1;
+}
+
+.prospects-view tbody tr {
+    transition: background 0.2s ease;
+}
+
+.prospects-view tbody tr:hover {
+    background-color: #f9fafb;
+}
+
+.prospects-view tbody td,
+.prospects-view tbody th {
+    vertical-align: middle;
+    font-size: 14px;
+    border-bottom: 1px solid #f3f4f6;
+    color: #374151;
+} 
+
+/* Status */
+.prospects-view .status-active {
+    background-color: #d1fae5;
+    color: #10b981;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.prospects-view .status-inactive {
+    background-color: #fee2e2;
+    color: #ef4444;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* BOTONES DE ACCION */
+.prospects-view .btn-outline-secondary,
+.prospects-view .btn-outline-danger {
+    border-radius: 8px;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.prospects-view .btn-outline-secondary {
+    border-color: #e5e7eb;
+    color: #6b7280;
+}
+
+.prospects-view .btn-outline-danger {
+    border-color: #fee2e2;
+    color: #ef4444;
+}
+
+.prospects-view .btn-outline-secondary:hover {
+    background-color: #f3f4f6;
+}
+
+.prospects-view .btn-outline-danger:hover {
+    background-color: #fee2e2;
+}
+

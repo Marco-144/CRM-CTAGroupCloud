@@ -1,0 +1,132 @@
+/* Contenedor principal */
+.addCotizacionForm {
+  font-family: 'Inter', sans-serif;
+}
+
+/* Títulos */
+.addCotizacionForm h4 {
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 20px;
+}
+
+/* Cards */
+.addCotizacionForm .card {
+  background: #ffffff;
+  border-radius: 18px;
+  border: 1px solid #f1f1f1;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+}
+
+.addCotizacionForm .card:hover {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+}
+
+/* Labels */
+.addCotizacionForm .form-label,
+.addCotizacionForm label {
+  font-size: 16px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 4px;
+}
+
+/* Dropdown de búsqueda */
+.addCotizacionForm .dropdown-autocomplete {
+  position: absolute;
+  width: 100%;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  max-height: 220px;
+  overflow-y: auto;
+  z-index: 1000;
+  display: none;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+}
+
+.addCotizacionForm .dropdown-autocomplete div {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.addCotizacionForm .dropdown-autocomplete div:hover {
+  background: #f3f4f6;
+}
+
+
+/* Inputs y selects */
+.addCotizacionForm .form-control,
+.addCotizacionForm .form-select {
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  padding: 8px 12px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.addCotizacionForm .form-control:focus,
+.addCotizacionForm .form-select:focus {
+  border-color: #6c5ce7;
+  box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.15);
+}
+
+/* Textarea descripción */
+.addCotizacionForm .textarea-descripcion {
+  resize: none;
+  overflow: hidden;
+}
+
+/* Botón Agregar Concepto */
+.addCotizacionForm .btn-outline-primary {
+  border-radius: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.addCotizacionForm .btn-outline-primary:hover {
+  background-color: #6c5ce7;
+  color: #fff;
+  border-color: #6c5ce7;
+}
+
+/* Botón Guardar */
+.addCotizacionForm .btn-primary {
+  background-color: #6c5ce7;
+  border: none;
+  font-weight: 500;
+  padding: 10px 20px;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.addCotizacionForm .btn-primary:hover {
+  background-color: #5a4bd1;
+  transform: translateY(-1px);
+}
+
+/* Botón eliminar */
+.addCotizacionForm .btn-outline-danger {
+  border-radius: 12px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.addCotizacionForm .btn-outline-danger:hover {
+  background-color: #dc3545;
+  color: #fff;
+}
+
+/* Total general */
+.addCotizacionForm #totalGeneral {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+
+/* Espaciado entre tarjetas */
+.addCotizacionForm .card + .card {
+  margin-top: 16px;
+}

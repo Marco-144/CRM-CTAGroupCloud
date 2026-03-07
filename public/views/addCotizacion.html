@@ -1,0 +1,56 @@
+<form id="addCotizacionForm" class="addCotizacionForm" novalidate>
+
+	<h4 class="mb-4">Nueva Cotización</h4>
+
+  <!-- PROSPECTO -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <label class="form-label">Prospecto</label>
+      <div class="position-relative">
+		<input 
+			type="text" 
+			class="form-control mb-2" 
+			id="cotizacionProspectoSearch" 
+			placeholder="Buscar empresa..."
+			autocomplete="off"
+			required
+		>
+		<div id="prospectosDropdown" class="dropdown-autocomplete"></div>
+	</div>
+	<input type="hidden" id="cotizacionProspecto">
+    </div>
+
+    <div class="col-md-3">
+      <label class="form-label">Moneda</label>
+      <select class="form-select" id="cotizacionMoneda">
+        <option value="MXN" selected>MXN</option>
+        <option value="USD">USD</option>
+      </select>
+    </div>
+
+    <div class="col-md-3">
+      <label class="form-label">Tipo de Cambio</label>
+      <input type="number" class="form-control" id="cotizacionTipoCambio" value="1" step="0.0001">
+    </div>
+  </div>
+
+  <!-- CONCEPTOS -->
+  <div id="conceptosContainer" class="mb-3"></div>
+
+  <button type="button" class="btn btn-outline-primary mb-4" id="addConceptoBtn">
+    + Agregar concepto
+  </button>
+
+  <!-- TOTAL GENERAL -->
+  <div class="mt-4">
+    <h5>Subtotal: <span id="subtotalGeneral">$0.00</span></h5>
+    <h5>IVA (16%): <span id="ivaGeneral">$0.00</span></h5>
+    <h5><strong>Total: <span id="totalGeneral">$0.00</span></strong></h5>
+  </div>
+
+  <div class="d-flex justify-content-end gap-2">
+    <button type="button" class="btn btn-outline-secondary" id="cancelCotizacionBtn">Cancelar</button>
+    <button type="submit" class="btn btn-primary">Guardar Cotización</button>
+  </div>
+
+</form>

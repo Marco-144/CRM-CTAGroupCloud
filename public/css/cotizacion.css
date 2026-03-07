@@ -1,0 +1,129 @@
+.cotizacion-view {
+	font-family: 'Inter', sans-serif;
+}
+
+.cotizacion-view h4 {
+	font-weight: 600;
+	color: #2c2c2c;
+}
+
+.cotizacion-view .btn-primary {
+	background-color: #6c5ce7;
+	border: none;
+	font-weight: 500;
+	padding: 8px 16px;
+	transition: all 0.2s ease;
+}
+
+.cotizacion-view .btn-primary:hover {
+	background-color: #5a4bd1;
+}
+
+.cotizacion-view .card {
+	background: #ffffff;
+	border-radius: 16px;
+}
+
+.cotizacion-view .icon-circle {
+	width: 50px;
+	height: 50px;
+	display: flex;
+	border-radius: 50%;
+	align-items: center;
+	justify-content: center;
+}
+
+.cotizacion-view .card h4 {
+	font-size: 18px;
+	margin-bottom: 0;
+}
+
+.cotizacion-view .card small {
+	color: #6c757d;
+}
+
+.cotizacion-view .form-select,
+.cotizacion-view .form-control {
+	border-radius: 10px;
+	border: 1px solid #e5e7eb;
+}
+
+.cotizacion-view .filters-wrapper {
+	align-items: center;
+}
+
+.cotizacion-view table {
+	margin-top: 8px;
+}
+
+.cotizacion-view thead th {
+	font-size: 13px;
+	font-weight: 600;
+	color: #9ca3af;
+	text-transform: uppercase;
+	border-bottom: 1px solid #f1f1f1;
+	white-space: nowrap;
+}
+
+.cotizacion-view tbody tr {
+	transition: background 0.2s ease;
+}
+
+.cotizacion-view tbody tr:hover {
+	background-color: #f9fafb;
+}
+
+.cotizacion-view tbody td,
+.cotizacion-view tbody th {
+	vertical-align: middle;
+	font-size: 14px;
+	border-bottom: 1px solid #f3f4f6;
+	color: #374151;
+}
+
+.cotizacion-view .btn-outline-secondary,
+.cotizacion-view .btn-outline-danger,
+.cotizacion-view .btn-outline-primary {
+	border-radius: 8px;
+	width: 34px;
+	height: 34px;
+	padding: 0;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.cotizacion-view .btn-outline-secondary {
+	border-color: #e5e7eb;
+	color: #6b7280;
+}
+
+.cotizacion-view .btn-outline-secondary:hover {
+	background-color: #f3f4f6;
+}
+
+.cotizacion-view .btn-outline-danger {
+	border-color: #fee2e2;
+	color: #ef4444;
+}
+
+.cotizacion-view .btn-outline-danger:hover {
+	background-color: #fee2e2;
+}
+
+.cotizacion-view .btn-outline-primary {
+	border-color: #cfe2ff;
+	color: #0d6efd;
+}
+
+.cotizacion-view .btn-outline-primary:hover {
+	background-color: #e7f1ff;
+}
+
+.cotizacion-view .btn-cerrar {
+	width: 90px;
+}
+
+.cotizacion-view .btn-limpiar {
+	width: 120px;
+}

@@ -1,0 +1,152 @@
+<!-- HEADER -->
+<div class="prospects-view">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-semibold">Prospects</h4>
+
+        <button class="btn btn-primary rounded-3"
+                id="openAddProspect"
+                data-bs-toggle="modal" 
+                data-bs-target="#addProspectModal">
+            <i class="bi bi-plus-lg"></i> Agregar Prospecto
+        </button>  
+    </div>
+
+    <!-- KPI  -->
+    <div class="row mb-4">
+
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0 rounded-4 p-3">
+                <div class="d-flex align-items-center">
+                    <div class="icon-circle bg-primary-subtle me-3">
+                        <i class="bi bi-people fs-4 text-primary"></i>
+                    </div>
+                    <div>
+                        <small>Total Prospectos</small>
+                        <h5 class="fw-bold" id="totalProspects">0</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0 rounded-4 p-3">
+                <div class="d-flex align-items-center">
+                    <div class="icon-circle bg-success-subtle me-3">
+                        <i class="bi bi-people fs-4 text-success"></i>
+                    </div>
+                    <div>
+                        <small>Prospectos Activos</small>
+                        <h5 class="fw-bold" id="activeProspects">0</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- TABLA -->
+    <div class="card border-0 shadow-sm rounded-4 p-4">
+        <div class="mb-3">
+            <h4 class="mb-1">Todos Prospectos</h4>
+
+            <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                <small class="subtitle">Prospectos Activos</small>
+
+                <div class="d-flex gap-2">
+                    <!-- Busqueda -->
+                    <input 
+                        type="text"
+                        class="form-control"
+                        placeholder="Buscar prospecto..."
+                        id="searchInput"
+                        style="min-width: 220px;"
+                    />
+
+                    <!-- Filtro -->
+                    <select class="form-select" id="statusFilter" style="min-width: 180px;">
+                        <!-- Opciones de filtro -->
+                        <option value="">Todos</option>
+                        <option value="Activo">Activos</option>
+                        <option value="Inactivo">Inactivos</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla -->
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Empresa</th>
+                    <th>Telefono</th>
+                    <th>Correo</th>
+                    <th>Prioridad</th>
+                    <th>Estado</th>
+                    <th class="text-end">Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="prospectsTable"></tbody>
+        </table>
+    </div>
+
+    <!-- AGREGAR PROSPECTO -->
+    <div class="modal fade" id="addProspectModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content rounded-4">
+                <div class="modal-header">
+                    <h5 class="modal-title">Agregar Nuevo Prospecto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <form id="prospectForm">
+                        <input type="hidden" id="prospectId">
+
+                        <div class="mb-3">
+                            <label class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="prospectName" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Nombre de la Empresa</label>
+                            <input type="text" class="form-control" id="prospectCompany" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Telefono</label>
+                            <input type="text" class="form-control" id="prospectPhone">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Correo</label>
+                            <input type="email" class="form-control" id="prospectEmail">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Prioridad</label>
+                            <select class="form-select" id="prospectPriority" required>
+                                <option value="" selected disabled>Selecciona una prioridad</option>
+                                <option value="Alta">Alta</option>
+                                <option value="Media">Media</option>
+                                <option value="Baja">Baja</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Estado</label>
+                            <select class="form-select" id="prospectStatus" required>
+                                <option value="Activo" selected>Activo</option>
+                                <option value="Inactivo">Inactivo</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100" id="saveProspectBtn">
+                            Guardar
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

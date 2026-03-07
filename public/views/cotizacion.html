@@ -1,0 +1,126 @@
+<!-- HEADER -->
+<div class="cotizacion-view">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-semibold mb-0">Cotización</h4>
+
+        <button class="btn btn-primary rounded-3" id="openAddService">
+            <i class="bi bi-plus-lg"></i> Agregar servicio
+        </button>
+    </div>
+
+    <!-- KPI  -->
+    <div class="row mb-4 g-3">
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 rounded-4 p-3">
+                <div class="d-flex align-items-center">
+                    <div class="icon-circle bg-primary-subtle me-3">
+                        <i class="bi bi-receipt fs-4 text-primary"></i>
+                    </div>
+                    <div>
+                        <small>N Cotizaciones</small>
+                        <h5 class="fw-bold mb-0" id="totalCotizaciones">0</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 rounded-4 p-3">
+                <div class="d-flex align-items-center">
+                    <div class="icon-circle bg-success-subtle me-3">
+                        <i class="bi bi-currency-dollar fs-4 text-success"></i>
+                    </div>
+                    <div>
+                        <small>Suma Total Cotizaciones</small>
+                        <h5 class="fw-bold mb-0" id="sumTotalCotizaciones">$0.00</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 rounded-4 p-3">
+                <div class="d-flex align-items-center">
+                    <div class="icon-circle bg-warning-subtle me-3">
+                        <i class="bi bi-box-seam fs-4 text-warning"></i>
+                    </div>
+                    <div>
+                        <small>Cantidad Total</small>
+                        <h5 class="fw-bold mb-0" id="sumCantidadCotizaciones">0</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABLA -->
+    <div class="card border-0 shadow-sm rounded-4 p-4">
+        <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-3">
+            <div>
+                <h4 class="mb-1">Todas las cotizaciones</h4>
+                <small class="text-muted">Datos cargados desde la base de datos</small>
+            </div>
+
+            <div class="d-flex align-items-center gap-2 flex-wrap filters-wrapper">
+                <input type="text" class="form-control" id="cotizacionSearch" placeholder="Buscar prospecto..."
+                    style="width: 220px;">
+                <select class="form-select" id="cotizacionFilter" style="width: 260px;">
+                    <option value="">Ordenar por...</option>
+                    <option value="total_desc">Total: Mayor a menor</option>
+                    <option value="total_asc">Total: Menor a mayor</option>
+                    <option value="cantidad_desc">Cantidad: Mayor a menor</option>
+                    <option value="cantidad_asc">Cantidad: Menor a mayor</option>
+                    <option value="status_all">Status: Todos</option>
+                    <option value="status_activo">Status: Activo</option>
+                    <option value="status_inactivo">Status: Inactivo</option>
+                    <option value="periodicidad_all">Periocidad: Todas</option>
+                    <option value="periodicidad_anual">Periocidad: Anual</option>
+                    <option value="periodicidad_mensual">Periocidad: Mensual</option>
+                    <option value="periodicidad_pago_unico">Periocidad: Pago Unico</option>
+                </select>
+                <input type="date" class="form-control" id="cotizacionDateFilter" style="width: 180px;">
+                <button class="btn btn-outline-secondary btn-limpiar" id="clearDateFilter">
+                    Limpiar
+                </button>
+            </div>
+        </div>
+
+        <table class="table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th class="text-center">Folio</th>
+                    <th>Prospecto</th>
+                    <th>Status</th>
+                    <th class="text-center">Cantidad</th>
+                    <th class="text-center">Subtotal</th>
+                    <th class="text-center">Total</th>
+                    <th class="text-end">Fecha</th>
+                    <th class="text-end">Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="cotizacionesTable"></tbody>
+        </table>
+
+        <!-- MODAL VER COTIZACION -->
+        <div class="modal fade" id="viewCotizacionModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content rounded-4">
+                    <div class="modal-header">
+                        <h5 class="modal-title fw-semibold">Detalle de Cotización</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="viewCotizacionBody">
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-outline-primary mt-9" style="width: 200px;" id="toggleFromDetailBtn" type="button">
+                            Activar / Desactivar
+                        </button>
+                        <button class="btn btn-outline-secondary btn-cerrar" data-bs-dismiss="modal">
+                            Cerrar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

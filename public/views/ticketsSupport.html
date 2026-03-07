@@ -1,0 +1,151 @@
+<div class="cotizacion-view">
+	<div class="d-flex justify-content-between align-items-center mb-4">
+		<h4 class="fw-semibold mb-0">Tickets de Soporte</h4>
+		<button class="btn btn-primary rounded-3" id="openAddTicket">
+			<i class="bi bi-plus-lg"></i> Nuevo Ticket
+		</button>
+	</div>
+
+	<div class="card border-0 shadow-sm rounded-4 p-4">
+		<div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-3">
+			<div>
+				<h5 class="mb-1">Consulta de tickets</h5>
+				<small class="text-muted">Insertar, editar y eliminar tickets</small>
+			</div>
+
+			<div class="d-flex gap-2 flex-wrap">
+				<input type="text" class="form-control" id="ticketsSearch" placeholder="Buscar ticket..." style="width: 220px;">
+
+				<select class="form-select" id="ticketsStatusFilter" style="width: 170px;">
+					<option value="">Estatus: Todos</option>
+					<option value="abierto">Abierto</option>
+					<option value="en progreso">En progreso</option>
+					<option value="en espera">En espera</option>
+					<option value="resuelto">Resuelto</option>
+				</select>
+
+				<select class="form-select" id="ticketsPriorityFilter" style="width: 170px;">
+					<option value="">Prioridad: Todas</option>
+					<option value="bajo">Bajo</option>
+					<option value="medio">Medio</option>
+					<option value="alto">Alto</option>
+					<option value="urgente">Urgente</option>
+				</select>
+
+				<select class="form-select" id="ticketsTypeFilter" style="width: 170px;">
+					<option value="">Tipo: Todos</option>
+					<option value="soporte">Soporte</option>
+					<option value="ventas">Ventas</option>
+					<option value="operaciones">Operaciones</option>
+					<option value="interno">Interno</option>
+				</select>
+			</div>
+		</div>
+
+		<table class="table align-middle mb-0">
+			<thead>
+				<tr>
+					<th>Ticket Number</th>
+					<th>Usuario</th>
+					<th>Asunto</th>
+					<th>Prioridad</th>
+					<th>Estado</th>
+					<th>Fecha</th>
+					<th>Asignado a</th>
+				</tr>
+			</thead>
+			<tbody id="ticketsTable"></tbody>
+		</table>
+	</div>
+
+	<div class="modal fade" id="ticketModal" tabindex="-1">
+		<div class="modal-dialog modal-lg">
+			<div class="modal-content rounded-4">
+				<div class="modal-header">
+					<h5 class="modal-title fw-semibold" id="ticketModalTitle">Nuevo Ticket</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+				</div>
+
+				<form id="ticketForm">
+					<div class="modal-body">
+						<input type="hidden" id="ticketId">
+
+						<div class="row g-3">
+							<div class="col-md-6">
+								<label class="form-label">Orden de servicio</label>
+								<select class="form-select" id="ticketServiceOrder" required></select>
+							</div>
+
+							<div class="col-md-6">
+								<label class="form-label">Cliente</label>
+								<select class="form-select" id="ticketProspect" required></select>
+							</div>
+
+							<div class="col-md-12">
+								<label class="form-label">Asunto</label>
+								<input type="text" class="form-control" id="ticketSubject" required>
+							</div>
+
+							<div class="col-md-12">
+								<label class="form-label">Descripción</label>
+								<textarea class="form-control" id="ticketDescription" rows="3"></textarea>
+							</div>
+
+							<div class="col-md-6">
+								<label class="form-label">Departamento</label>
+								<select class="form-select" id="ticketDepartment" required></select>
+							</div>
+
+							<div class="col-md-6">
+								<label class="form-label">Asignado a</label>
+								<select class="form-select" id="ticketAssignedUser">
+									<option value="">Sin asignar</option>
+								</select>
+							</div>
+
+							<div class="col-md-4">
+								<label class="form-label">Prioridad</label>
+								<select class="form-select" id="ticketPriority" required>
+									<option value="bajo">Bajo</option>
+									<option value="medio" selected>Medio</option>
+									<option value="alto">Alto</option>
+									<option value="urgente">Urgente</option>
+								</select>
+							</div>
+
+							<div class="col-md-4">
+								<label class="form-label">Estatus</label>
+								<select class="form-select" id="ticketStatus" required>
+									<option value="abierto" selected>Abierto</option>
+									<option value="en progreso">En progreso</option>
+									<option value="en espera">En espera</option>
+									<option value="resuelto">Resuelto</option>
+								</select>
+							</div>
+
+							<div class="col-md-4">
+								<label class="form-label">Tipo</label>
+								<select class="form-select" id="ticketType" required>
+									<option value="soporte" selected>Soporte</option>
+									<option value="ventas">Ventas</option>
+									<option value="operaciones">Operaciones</option>
+									<option value="interno">Interno</option>
+								</select>
+							</div>
+
+							<div class="col-md-6">
+								<label class="form-label">Fecha límite</label>
+								<input type="date" class="form-control" id="ticketDueDate">
+							</div>
+						</div>
+					</div>
+
+					<div class="modal-footer">
+						<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+						<button type="submit" class="btn btn-primary">Guardar Ticket</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>
