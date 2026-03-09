@@ -1,4 +1,28 @@
+require("dotenv").config();
 const express = require("express");
+const cors = require("cors");
+const path = require("path");
+
+const routes = require("./server/routes");
+
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+app.use(express.static(path.join(__dirname, "public")));
+
+app.use("/api", routes);
+
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Servidor corriendo en puerto ${PORT}`);
+});
+
+
+/* const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 const db = require("./config/db");
@@ -39,9 +63,9 @@ function authenticateToken(req, res, next) {
   }
 }
 
-/* =========================
-   LOGIN
-========================= */
+// =========================
+//   LOGIN
+// ========================= 
 
 app.post("/api/login", async (req, res) => {
   try {
@@ -145,9 +169,9 @@ app.get("/api/auth/me", authenticateToken, async (req, res) => {
   }
 });
 
-/* =========================
-   USERS
-========================= */
+// =========================
+//   USERS
+// ========================= 
 
 app.get("/api/users", async (req, res) => {
   try {
@@ -275,9 +299,9 @@ app.delete("/api/users/:id", async (req, res) => {
   }
 });
 
-/* =========================
-DEPARTMENTS & ROLES
-========================= */
+// =========================
+// DEPARTMENTS & ROLES
+// ========================= 
 
 app.get("/api/departments", async (req, res) => {
   try {
@@ -311,9 +335,9 @@ app.get("/api/roles", async (req, res) => {
   }
 });
 
-/* =========================
-   PROSPECTOS
-========================= */
+// =========================
+// PROSPECTOS
+// ========================= 
 
 app.get("/api/prospects", async (req, res) => {
   try {
@@ -421,9 +445,9 @@ app.delete("/api/prospects/:id_prospect", async (req, res) => {
   }
 });
 
-/* =========================
-   COTIZACIONES
-========================= */
+// =========================
+// COTIZACIONES
+// ========================= 
 
 app.get("/api/cotizaciones", async (req, res) => {
   try {
@@ -504,9 +528,9 @@ app.get("/api/cotizaciones/:id", async (req, res) => {
 });
 
 
-/* =========================
-    CREAR PDF COTIZACION
-========================= */
+// =========================
+// CREAR PDF COTIZACION
+// ========================= 
 
 app.get("/api/cotizaciones/:id/pdf", async (req, res) => {
   try {
@@ -743,9 +767,9 @@ app.get("/api/cotizaciones/:id/pdf", async (req, res) => {
 });
 
 
-/* =========================
-   CREAR COTIZACION
-========================= */
+// =========================
+//   CREAR COTIZACION
+// ========================= 
 
 app.post("/api/cotizaciones", async (req, res) => {
   const connection = await db.getConnection();
@@ -808,9 +832,9 @@ app.post("/api/cotizaciones", async (req, res) => {
   }
 });
 
-/* =========================
-   EDITAR COTIZACION
-========================= */
+// =========================
+//   EDITAR COTIZACION
+// =========================
 
 app.put("/api/cotizaciones/:id", async (req, res) => {
   const connection = await db.getConnection();
@@ -913,9 +937,9 @@ app.put("/api/cotizaciones/:id", async (req, res) => {
   }
 });
 
-/* =========================
-   ELIMINAR COTIZACION 
-========================= */
+// =========================
+//   ELIMINAR COTIZACION 
+// =========================
 
 
 app.delete("/api/cotizaciones/:id", async (req, res) => {
@@ -1025,9 +1049,9 @@ app.delete("/api/cotizaciones/:id/permanent", async (req, res) => {
   }
 });
 
-/* =========================
-SERVICE ORDERS  
-========================= */
+// =========================
+// SERVICE ORDERS  
+// =========================
 
 app.get("/api/service-orders", async (req, res) => {
   try {
@@ -1308,9 +1332,9 @@ app.delete("/api/service-orders/:id", async (req, res) => {
   }
 });
 
-/* =========================
-   TICKETS
-========================= */
+// =========================
+//   TICKETS
+// =========================
 
 app.get("/api/tickets", async (req, res) => {
   try {
@@ -1723,4 +1747,4 @@ const PORT =   process.env.PORT ||  3000;
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Servidor corriendo en puerto ${PORT}`);
-});
+}); */

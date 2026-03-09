@@ -30,11 +30,11 @@ async function validateSession() {
     }
 
     try {
-        const response = await fetch('/api/auth/me', {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        });
+        const response = await apiFetch('/api/auth/me');
+
+        if (!response) {
+            return false;
+        }
 
         if (!response.ok) {
             clearSessionAndRedirect();
@@ -97,7 +97,7 @@ function getAppDialogRefs() {
     return appDialogRefs;
 }
 
-window.showAppAlert = function(message, title = 'Mensaje') {
+window.showAppAlert = function (message, title = 'Mensaje') {
     const refs = getAppDialogRefs();
 
     refs.titleEl.textContent = title;
@@ -119,7 +119,7 @@ window.showAppAlert = function(message, title = 'Mensaje') {
     });
 };
 
-window.showAppConfirm = function(message, title = 'Confirmar acción') {
+window.showAppConfirm = function (message, title = 'Confirmar acción') {
     const refs = getAppDialogRefs();
     let userConfirmed = false;
 
@@ -149,11 +149,11 @@ window.showAppConfirm = function(message, title = 'Confirmar acción') {
 };
 
 // Accion de despliegue del sidebar
-toggle.addEventListener('click', function() {
+toggle.addEventListener('click', function () {
 
     const logoImage = document.getElementById('logoImage');
-    
-    logoImage.style.opacity = 0; 
+
+    logoImage.style.opacity = 0;
 
     setTimeout(() => {
 
@@ -206,7 +206,7 @@ function addCollapseIconsToNavItems() {
 }
 
 // Cargar las diferentes secciones del dashboard
-document.addEventListener('DOMContentLoaded', async function() {
+document.addEventListener('DOMContentLoaded', async function () {
     const isSessionValid = await validateSession();
     if (!isSessionValid) return;
 
@@ -216,7 +216,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     logoutBtn?.addEventListener('click', handleLogoutClick);
 });
 
-document.addEventListener('click', function(event) {
+document.addEventListener('click', function (event) {
     const target = event.target.closest('#logoutBtn');
     if (!target) return;
     handleLogoutClick(event);
