@@ -130,7 +130,7 @@ async function fetchProspects() {
     if (searchValue) params.append('search', searchValue);
     if (statusValue) params.append('status', statusValue);
 
-    const response = await fetch(`/api/prospects?${params.toString()}`);
+    const response = await apiFetch(`/api/prospects?${params.toString()}`);
     if (!response.ok) {
         throw new Error('No se pudo cargar la lista de prospectos');
     }
@@ -162,7 +162,7 @@ async function saveProspect(event) {
 
     const method = id ? 'PUT' : 'POST';
 
-    const response = await fetch(endpoint, {
+    const response = await apiFetch(endpoint, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -186,7 +186,7 @@ async function deleteProspect(id) {
     );
     if (!confirmed) return;
 
-    const response = await fetch(`/api/prospects/${id}`, {
+    const response = await apiFetch(`/api/prospects/${id}`, {
         method: 'DELETE'
     });
 

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,28 +10,29 @@
 
     <link rel="stylesheet" href="css/main-menu.css">
 </head>
+
 <body>
 
     <div class="d-flex main-wrapper">
 
         <!-- SIDEBAR -->
         <div id="sidebar" class="sidebar expanded">
-            
+
             <!-- LOGO -->
             <div class="logo-container text-center py-4" id="toggleSidebar">
                 <img src="assets/LOGO HORIZONTAL-02.png" class="logo-icon" id="logoImage">
-            </div> 
+            </div>
 
             <div class="sidebar-body">
                 <!-- MENÚ -->
                 <ul class="nav flex-column px-2">
                     <li class="nav-item">
-                        <a class="nav-link" 
+                        <a class="nav-link"
                             onclick="loadView('views/dashboard.html', 'css/dashboard.css', 'js/dashboard.js')">
                             <i class="bi bi-speedometer2"></i>
                             <span class="menu-text">Dashboard</span>
                         </a>
-                    </li> 
+                    </li>
 
                     <li class="nav-item">
                         <a class="nav-link" data-bs-toggle="collapse" href="#commercialSub">
@@ -39,17 +41,20 @@
                         </a>
 
                         <div class="collapse subCategory" id="commercialSub">
-                            <a class="nav-link small" 
-                               onclick="loadView('views/prospects.html', 'css/prospects.css', 'js/prospects.js')">
+                            <a class="nav-link small"
+                                onclick="loadView('views/prospects.html', 'css/prospects.css', 'js/prospects.js')">
                                 <span class="menu-text">Prospectos</span>
                             </a>
-                            <a class="nav-link small" 
-                               onclick="loadView('views/cotizacion.html', 'css/cotizacion.css', 'js/cotizacion.js')">
+                            <a class="nav-link small"
+                                onclick="loadView('views/cotizacion.html', 'css/cotizacion.css', 'js/cotizacion.js')">
                                 <span class="menu-text">Cotización</span>
                             </a>
-                            <a class="nav-link small menu-disabled" href="#">
+                            <a class="nav-link small" onclick="loadView('views/clients.html', 'css/clients.css', 'js/clients.js')">
+                                <span class="menu-text">Clientes</span>
+                            </a>
+                            <a class="nav-link small" onclick="loadView('views/ventas.html', 'css/ventas.css', 'js/ventas.js')">
                                 <span class="menu-text">Ventas</span>
-                            </a>    
+                            </a>
                         </div>
                     </li>
 
@@ -86,13 +91,13 @@
                         </a>
 
                         <div class="collapse subCategory" id="projectsSub">
-                            <a class="nav-link small" 
-                               onclick="loadView('views/serviceOrders.html', 'css/serviceOrders.css', 'js/serviceOrders.js')">
+                            <a class="nav-link small"
+                                onclick="loadView('views/serviceOrders.html', 'css/serviceOrders.css', 'js/serviceOrders.js')">
                                 <span class="menu-text">Ordenes de Servicio</span>
                             </a>
-                        
+
                             <a class="nav-link small"
-                               onclick="loadView('views/ticketsSupport.html', 'css/ticketsSupport.css', 'js/ticketsSupport.js')">
+                                onclick="loadView('views/ticketsSupport.html', 'css/ticketsSupport.css', 'js/ticketsSupport.js')">
                                 <span class="menu-text">Tickets de Soporte</span>
                             </a>
                         </div>
@@ -100,7 +105,7 @@
                     </li>
 
                     <li class="nav-item">
-                        <a class="nav-link" 
+                        <a class="nav-link"
                             onclick="loadView('views/settings.html', 'css/settings.css', 'js/settings.js')">
                             <i class="bi bi-gear"></i>
                             <span class="menu-text">Configuración</span>
@@ -111,24 +116,26 @@
             </div>
 
             <div class="sidebar-footer px-2 pb-3">
-                    <button class="logout-btn w-100" id="logoutBtn" type="button">
-                        <i class="bi bi-box-arrow-right"></i>
-                        <span class="menu-text">Cerrar sesión</span>
-                    </button>
-                </div>
+                <button class="logout-btn w-100" id="logoutBtn" type="button">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span class="menu-text">Cerrar sesión</span>
+                </button>
+            </div>
         </div>
 
         <!-- CONTENT  -->
         <div class="content-area flex-fill p-4">
             <div id="content-area">
-                
+
 
             </div>
         </div>
 
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/api.js"></script>
     <script src="js/main-menu.js"></script>
 </body>
+
 </html>
