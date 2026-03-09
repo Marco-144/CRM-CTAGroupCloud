@@ -1122,10 +1122,10 @@ app.get("/api/service-orders/:id", async (req, res) => {
         id_ticket,
         ticket_number,
         subject,
-        desccription AS description,
+        description,
         priority,
         status,
-        ticekt_type AS ticket_type,
+        ticket_type,
         due_date,
         created_at
       FROM tickets
@@ -1331,7 +1331,7 @@ app.get("/api/tickets", async (req, res) => {
         t.id_prospect,
         p.company AS prospecto,
         t.subject,
-        t.desccription AS description,
+        t.description,
         t.id_department,
         d.name AS department,
         t.id_created_by,
@@ -1340,7 +1340,7 @@ app.get("/api/tickets", async (req, res) => {
         ua.username AS assigned_user,
         t.priority,
         t.status,
-        t.ticekt_type AS ticket_type,
+        t.ticket_type,
         t.due_date,
         t.created_at,
         t.updated_at
@@ -1361,7 +1361,7 @@ app.get("/api/tickets", async (req, res) => {
         AND (
           t.ticket_number LIKE ?
           OR t.subject LIKE ?
-          OR t.desccription LIKE ?
+          OR t.description LIKE ?
           OR p.company LIKE ?
           OR so.order_number LIKE ?
         )
@@ -1380,7 +1380,7 @@ app.get("/api/tickets", async (req, res) => {
     }
 
     if (ticket_type) {
-      query += " AND t.ticekt_type = ?";
+      query += " AND t.ticket_type = ?";
       params.push(ticket_type);
     }
 
@@ -1413,7 +1413,7 @@ app.get("/api/tickets/:id", async (req, res) => {
         t.id_prospect,
         p.company AS prospecto,
         t.subject,
-        t.desccription AS description,
+        t.description,
         t.id_department,
         d.name AS department,
         t.id_created_by,
@@ -1422,7 +1422,7 @@ app.get("/api/tickets/:id", async (req, res) => {
         ua.username AS assigned_user,
         t.priority,
         t.status,
-        t.ticekt_type AS ticket_type,
+        t.ticket_type,
         t.due_date,
         t.created_at,
         t.updated_at
@@ -1523,13 +1523,13 @@ app.post("/api/tickets", async (req, res) => {
           id_service_order,
           id_prospect,
           subject,
-          desccription,
+          description,
           id_department,
           id_created_by,
           id_assigned_user,
           priority,
           status,
-          ticekt_type,
+          ticket_type,
           due_date
         )
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -1591,12 +1591,12 @@ app.put("/api/tickets/:id", async (req, res) => {
         id_service_order,
         id_prospect,
         subject,
-        desccription,
+        description,
         id_department,
         id_assigned_user,
         priority,
         status,
-        ticekt_type,
+        ticket_type,
         due_date
       FROM tickets
       WHERE id_ticket = ?
@@ -1610,7 +1610,7 @@ app.put("/api/tickets/:id", async (req, res) => {
     }
 
     const existing = existingRows[0];
-    const cleanTicketType = String(ticket_type || existing.ticekt_type).toLowerCase();
+    const cleanTicketType = String(ticket_type || existing.ticket_type).toLowerCase();
 
     await connection.query(
       `UPDATE tickets
@@ -1618,12 +1618,12 @@ app.put("/api/tickets/:id", async (req, res) => {
         id_service_order = ?,
         id_prospect = ?,
         subject = ?,
-        desccription = ?,
+        description = ?,
         id_department = ?,
         id_assigned_user = ?,
         priority = ?,
         status = ?,
-        ticekt_type = ?,
+        ticket_type = ?,
         due_date = ?
        WHERE id_ticket = ?`,
       [
@@ -1646,12 +1646,12 @@ app.put("/api/tickets/:id", async (req, res) => {
       ["id_service_order", existing.id_service_order, id_service_order],
       ["id_prospect", existing.id_prospect, id_prospect],
       ["subject", existing.subject, subject],
-      ["description", existing.desccription, description],
+      ["description", existing.description, description],
       ["id_department", existing.id_department, id_department],
       ["id_assigned_user", existing.id_assigned_user, id_assigned_user || null],
       ["priority", existing.priority, String(priority).toLowerCase()],
       ["status", existing.status, String(status).toLowerCase()],
-      ["ticket_type", existing.ticekt_type, cleanTicketType],
+      ["ticket_type", existing.ticket_type, cleanTicketType],
       ["due_date", existing.due_date, due_date || null]
     ];
 
