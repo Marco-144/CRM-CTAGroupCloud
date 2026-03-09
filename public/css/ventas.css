@@ -1,0 +1,4 @@
+.ventas-view .table td,
+.ventas-view .table th {
+	vertical-align: middle;
+}

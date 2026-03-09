@@ -1,6 +1,33 @@
 const db = require("../config/db");
 const generatePDF = require("../utils/pdfGenerator");
 
+async function getCompatibleCotizacionStatus() {
+    try {
+        const [rows] = await db.query(
+            `SELECT COLUMN_TYPE
+             FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = 'cotizacion'
+               AND COLUMN_NAME = 'status'
+             LIMIT 1`
+        );
+
+        const columnType = String(rows?.[0]?.COLUMN_TYPE || "").toLowerCase();
+
+        if (columnType.includes("completada")) {
+            return "Completada";
+        }
+
+        if (columnType.includes("inactivo")) {
+            return "Inactivo";
+        }
+    } catch (_error) {
+        // Fallback keeps endpoint operational even if metadata query fails.
+    }
+
+    return "Inactivo";
+}
+
 exports.getCotizaciones = async (req, res) => {
     try {
         const { status = "" } = req.query;
@@ -317,10 +344,11 @@ exports.changeStatus = async (req, res) => {
 exports.completeCotizacion = async (req, res) => {
     try {
         const id = Number(req.params.id);
+        const statusToSet = await getCompatibleCotizacionStatus();
 
         const [result] = await db.query(
-            "UPDATE cotizacion SET status = 'Completada' WHERE id_cotizacion = ?",
-            [id]
+            "UPDATE cotizacion SET status = ? WHERE id_cotizacion = ?",
+            [statusToSet, id]
         );
 
         if (!result.affectedRows) {

@@ -1,0 +1,20 @@
+.clients-view .form-label {
+  font-weight: 600;
+}
+
+.clients-view .table td,
+.clients-view .table th {
+  vertical-align: middle;
+}
+
+.clients-view .doc-link {
+  font-size: 0.875rem;
+}
+
+.clients-view .client-detail-section small {
+  font-weight: 600;
+}
+
+.clients-view .client-detail-section div {
+  word-break: break-word;
+}

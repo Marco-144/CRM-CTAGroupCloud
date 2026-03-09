@@ -12,6 +12,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use(express.static(path.join(__dirname, "public")));
+app.use("/server/uploads", express.static(path.join(__dirname, "server", "uploads")));
 
 app.use("/api", routes);
 

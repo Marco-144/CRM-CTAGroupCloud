@@ -2,7 +2,7 @@ const db = require("../config/db");
 
 exports.getProspects = async (req, res) => {
     try {
-        const { search = "", status = "" } = req.query;
+        const { search = "", status = "", include_clients = "0" } = req.query;
 
         let query = `
       SELECT id_prospect, name, company, phone, email, priority, status
@@ -11,6 +11,10 @@ exports.getProspects = async (req, res) => {
     `;
 
         const params = [];
+
+        if (include_clients !== "1") {
+            query += " AND COALESCE(is_client, 0) = 0";
+        }
 
         if (search) {
             query += " AND (name LIKE ? OR company LIKE ? OR email LIKE ? OR phone LIKE ?)";
