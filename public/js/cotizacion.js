@@ -14,6 +14,7 @@
     const viewModal = new bootstrap.Modal(document.getElementById("viewCotizacionModal"));
     const viewBody = document.getElementById("viewCotizacionBody");
     const toggleFromDetailBtn = document.getElementById("toggleFromDetailBtn");
+    const cancelCotizacionBtn = document.getElementById("cancelCotizacionBtn");
 
     let cotizacionesCache = [];
     let filteredData = [];
@@ -320,7 +321,8 @@
 
         const statusMap = {
             status_activo: "Activo",
-            status_inactivo: "Inactivo"
+            status_inactivo: "Inactivo",
+            status_cancelada: "Cancelada"
         };
 
         const selectedStatus = statusMap[activeFilter] || "";
@@ -420,6 +422,15 @@
             const folio = String(item.Folio ?? item.folio ?? 0).padStart(5, "0");
             const isInactive = item.status === "Inactivo";
             const isCompleted = item.status === "Completada";
+            const isCancelled = item.status === "Cancelada";
+            const statusBadgeClass = isCompleted
+                ? "bg-primary"
+                : isCancelled
+                    ? "bg-danger"
+                    : isInactive
+                        ? "bg-secondary"
+                        : "bg-success";
+            const isPdfDisabled = isInactive || isCancelled;
 
             return `
         <tr>
@@ -429,10 +440,7 @@
                 ${isCompleted
                     ? `<span class="badge bg-primary">${item.status || "Activo"}</span>`
                     : `<button class="btn btn-sm p-0 border-0 bg-transparent status-inline-btn" data-id="${item.id_cotizacion}" title="Cambiar estatus">
-                        <span class="badge ${isInactive
-                        ? "bg-secondary"
-                        : "bg-success"
-                    }">
+                        <span class="badge ${statusBadgeClass}">
                     ${item.status || "Activo"}
                 </span>
                     </button>`}
@@ -460,9 +468,9 @@
 
                 <div class="vr me-2 "></div>
 
-                <button class="btn btn-sm btn-outline-primary pdf-btn ${isInactive ? "disabled" : ""}"
+                <button class="btn btn-sm btn-outline-primary pdf-btn ${isPdfDisabled ? "disabled" : ""}"
                     data-id="${item.id_cotizacion}"
-                    ${isInactive ? "disabled title='Cotización inactiva: PDF no disponible'" : ""}>
+                    ${isPdfDisabled ? "disabled title='Cotizacion inactiva/cancelada: PDF no disponible'" : ""}>
                     <i class="bi bi-filetype-pdf"></i>
                 </button>
 
@@ -626,9 +634,15 @@
         </div>
     `;
 
-        toggleFromDetailBtn.textContent = cot.status === "Inactivo"
-            ? "Activar cotización"
-            : "Desactivar cotización";
+        if (cot.status === "Cancelada") {
+            toggleFromDetailBtn.textContent = "Activar cotizacion";
+            cancelCotizacionBtn?.setAttribute("disabled", "disabled");
+        } else {
+            toggleFromDetailBtn.textContent = cot.status === "Inactivo"
+                ? "Activar cotizacion"
+                : "Desactivar cotizacion";
+            cancelCotizacionBtn?.removeAttribute("disabled");
+        }
 
         viewModal.show();
 
@@ -642,6 +656,28 @@
         if (!currentViewId) return;
 
         await toggleCotizacionStatus(currentViewId);
+        await openViewModal(currentViewId);
+    });
+
+    cancelCotizacionBtn?.addEventListener("click", async () => {
+        if (!currentViewId) return;
+
+        const confirmed = await showConfirm("¿Deseas marcar esta cotizacion como cancelada?");
+        if (!confirmed) return;
+
+        const res = await apiFetch(`/api/cotizaciones/${currentViewId}/status`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "Cancelada" })
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success) {
+            await showAlert(data.message || "No se pudo cancelar la cotizacion");
+            return;
+        }
+
+        await loadCotizaciones();
         await openViewModal(currentViewId);
     });
 
