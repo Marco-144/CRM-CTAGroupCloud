@@ -321,7 +321,7 @@ exports.changeStatus = async (req, res) => {
         const id = Number(req.params.id);
         const { status } = req.body;
 
-        if (!["Activo", "Inactivo"].includes(status)) {
+        if (!["Activo", "Inactivo", "Cancelada"].includes(status)) {
             return res.status(400).json({ success: false, message: "Status invalido" });
         }
 

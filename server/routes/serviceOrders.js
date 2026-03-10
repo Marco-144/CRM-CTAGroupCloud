@@ -8,6 +8,8 @@ router.get("/", authenticateToken, controller.getServiceOrders);
 
 router.get("/:id", authenticateToken, controller.getServiceOrder);
 
+router.post("/from-ticket/:ticketId", authenticateToken, controller.createServiceOrderFromTicket);
+
 router.post("/", authenticateToken, controller.createServiceOrder);
 
 router.put("/:id", authenticateToken, controller.updateServiceOrder);

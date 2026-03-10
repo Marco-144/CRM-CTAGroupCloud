@@ -1,0 +1,67 @@
+.ticket-conversation-layout {
+	display: grid;
+	grid-template-columns: 2fr 1fr;
+	gap: 16px;
+	align-items: stretch;
+}
+
+.ticket-conversation-main,
+.ticket-history-panel {
+	border: 1px solid #e9ecef;
+	border-radius: 12px;
+	padding: 12px;
+	background: #fff;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+
+.ticket-response-list,
+.ticket-history-list {
+	max-height: 80vh;
+	overflow-y: auto;
+}
+
+#ticketServiceOrdersList {
+	max-height: 18vh;
+	overflow-y: auto;
+}
+
+.ticket-response-item,
+.ticket-history-item {
+	border: 1px solid #f0f0f0;
+	border-radius: 10px;
+	padding: 10px;
+	margin-bottom: 10px;
+	background: #fafafa;
+}
+
+.ticket-response-head,
+.ticket-history-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 10px;
+	margin-bottom: 6px;
+}
+
+.ticket-response-meta,
+.ticket-history-meta {
+	font-size: 0.82rem;
+	color: #6c757d;
+}
+
+@media (max-width: 991px) {
+	.ticket-conversation-layout {
+		grid-template-columns: 1fr;
+	}
+
+	.ticket-response-list,
+	.ticket-history-list {
+		max-height: 34vh;
+	}
+
+	#ticketServiceOrdersList {
+		max-height: 22vh;
+	}
+}

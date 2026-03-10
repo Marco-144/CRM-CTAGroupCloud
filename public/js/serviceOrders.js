@@ -9,6 +9,7 @@
     const modalTitle = document.getElementById("serviceOrderModalTitle");
     const soId = document.getElementById("soId");
     const soProspect = document.getElementById("soProspect");
+    const soTicket = document.getElementById("soTicket");
     const soServiceType = document.getElementById("soServiceType");
     const soPriority = document.getElementById("soPriority");
     const soStatus = document.getElementById("soStatus");
@@ -25,7 +26,8 @@
     const showConfirm = window.showAppConfirm || ((message) => Promise.resolve(window.confirm(message)));
 
     let ordersCache = [];
-    let prospectsCache = [];
+    let clientsCache = [];
+    let ticketsCache = [];
 
     function getLoggedUserId() {
         try {
@@ -78,6 +80,18 @@
         return map[String(priority || "").toLowerCase()] || "bg-secondary";
     }
 
+    function openTicketConversation(ticketId) {
+        const safeId = Number(ticketId || 0);
+        if (!safeId) return;
+
+        window.pendingTicketConversationId = safeId;
+        sessionStorage.setItem("pendingTicketConversationId", String(safeId));
+
+        if (typeof loadView === "function") {
+            loadView("views/ticketsSupport.html", "css/ticketsSupport.css", "js/ticketsSupport.js");
+        }
+    }
+
     function renderTable(data) {
         if (!Array.isArray(data) || !data.length) {
             table.innerHTML = `
@@ -91,11 +105,15 @@
         table.innerHTML = data.map((order) => `
         <tr>
             <td>${escapeHTML(order.order_number)}</td>
-            <td>${escapeHTML(order.prospecto || "-")}</td>
+            <td>${escapeHTML(order.cliente || order.prospecto || "-")}</td>
+            <td>
+                ${order.id_ticket
+                ? `<button class="btn btn-link p-0 text-decoration-none open-ticket" data-ticket-id="${order.id_ticket}">${escapeHTML(order.ticket_number || "-")}</button>`
+                : "-"}
+            </td>
             <td>${escapeHTML(order.service_type || "-")}</td>
             <td><span class="badge ${getBadgeClassPriority(order.priority)}">${escapeHTML(capitalize(order.priority))}</span></td>
             <td><span class="badge ${getBadgeClassStatus(order.status)}">${escapeHTML(capitalize(order.status))}</span></td>
-            <td class="text-center">${Number(order.total_tickets || 0)}</td>
             <td class="text-end">${formatDate(order.created_at)}</td>
             <td class="text-end">
                 <button class="btn btn-sm btn-outline-primary me-2 view-btn" data-id="${order.id_service_order}">
@@ -113,21 +131,40 @@
     }
 
     async function loadProspects() {
-        const response = await apiFetch("/api/prospects?status=Activo");
-        const payload = await response.json();
+        const [clientsRes, ticketsRes] = await Promise.all([
+            apiFetch("/api/clients"),
+            apiFetch("/api/tickets")
+        ]);
 
-        if (!response.ok || !payload.success) {
-            throw new Error(payload.message || "No se pudieron cargar prospectos");
+        const [clientsPayload, ticketsPayload] = await Promise.all([
+            clientsRes.json(),
+            ticketsRes.json()
+        ]);
+
+        if (!clientsRes.ok || !clientsPayload.success) {
+            throw new Error(clientsPayload.message || "No se pudieron cargar clientes");
         }
 
-        prospectsCache = payload.data || [];
+        if (!ticketsRes.ok || !ticketsPayload.success) {
+            throw new Error(ticketsPayload.message || "No se pudieron cargar tickets");
+        }
+
+        clientsCache = clientsPayload.data || [];
+        ticketsCache = ticketsPayload.data || [];
 
         soProspect.innerHTML = `
-        <option value="">Seleccionar prospecto</option>
-        ${prospectsCache
-                .map((prospect) => `<option value="${prospect.id_prospect}">${escapeHTML(prospect.company)}</option>`)
+        <option value="">Seleccionar cliente</option>
+        ${clientsCache
+                .map((client) => `<option value="${client.id_client}">${escapeHTML(client.company)}</option>`)
                 .join("")}
     `;
+
+        soTicket.innerHTML = `
+        <option value="">Sin ticket</option>
+        ${ticketsCache
+                .map((ticket) => `<option value="${ticket.id_ticket}">${escapeHTML(ticket.ticket_number)} - ${escapeHTML(ticket.subject || "")}</option>`)
+                .join("")}
+        `;
     }
 
     async function loadOrders() {
@@ -155,6 +192,7 @@
     function resetForm() {
         form.reset();
         soId.value = "";
+        soTicket.value = "";
         soPriority.value = "medio";
         soStatus.value = "pendiente";
         modalTitle.textContent = "Nueva Orden de Servicio";
@@ -163,6 +201,7 @@
     function fillForm(order) {
         soId.value = order.id_service_order;
         soProspect.value = String(order.id_prospect || "");
+        soTicket.value = order.id_ticket ? String(order.id_ticket) : "";
         soServiceType.value = order.service_type || "";
         soPriority.value = String(order.priority || "medio").toLowerCase();
         soStatus.value = String(order.status || "pendiente").toLowerCase();
@@ -178,6 +217,7 @@
         const id = soId.value;
 
         const payload = {
+            id_ticket: soTicket.value ? Number(soTicket.value) : null,
             id_prospect: Number(soProspect.value),
             id_created_by: getLoggedUserId(),
             service_type: soServiceType.value.trim(),
@@ -189,7 +229,7 @@
         };
 
         if (!payload.id_prospect || !payload.service_type) {
-            await showAlert("Prospecto y tipo de servicio son obligatorios");
+            await showAlert("Cliente y tipo de servicio son obligatorios");
             return;
         }
 
@@ -231,8 +271,12 @@
                         <div class="fw-semibold">${escapeHTML(order.order_number)}</div>
                     </div>
                     <div class="col-md-6">
-                        <div class="text-muted small">Prospecto</div>
-                        <div class="fw-semibold">${escapeHTML(order.prospecto || "-")}</div>
+                        <div class="text-muted small">Cliente</div>
+                        <div class="fw-semibold">${escapeHTML(order.cliente || order.prospecto || "-")}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="text-muted small">Ticket</div>
+                        <div class="fw-semibold">${escapeHTML(order.ticket_number || "-")}</div>
                     </div>
                     <div class="col-md-6">
                         <div class="text-muted small">Tipo de servicio</div>
@@ -261,30 +305,6 @@
                 </div>
             </div>
         </div>
-
-        <h6 class="fw-semibold">Tickets relacionados</h6>
-        <table class="table table-sm align-middle mb-0">
-            <thead>
-                <tr>
-                    <th>Ticket</th>
-                    <th>Asunto</th>
-                    <th>Prioridad</th>
-                    <th>Estatus</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${(order.tickets || []).length
-                ? order.tickets.map((ticket) => `
-                        <tr>
-                            <td>${escapeHTML(ticket.ticket_number)}</td>
-                            <td>${escapeHTML(ticket.subject || "-")}</td>
-                            <td>${escapeHTML(capitalize(ticket.priority))}</td>
-                            <td>${escapeHTML(capitalize(ticket.status))}</td>
-                        </tr>
-                    `).join("")
-                : `<tr><td colspan="4" class="text-center text-muted">Sin tickets</td></tr>`}
-            </tbody>
-        </table>
     `;
 
         viewModal.show();
@@ -339,8 +359,14 @@
             const viewBtn = event.target.closest(".view-btn");
             const editBtn = event.target.closest(".edit-btn");
             const deleteBtn = event.target.closest(".delete-btn");
+            const openTicketBtn = event.target.closest(".open-ticket");
 
             try {
+                if (openTicketBtn) {
+                    openTicketConversation(openTicketBtn.dataset.ticketId);
+                    return;
+                }
+
                 if (viewBtn) {
                     await openDetail(viewBtn.dataset.id);
                     return;
