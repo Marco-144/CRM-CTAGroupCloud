@@ -11,6 +11,7 @@
     const soProspect = document.getElementById("soProspect");
     const soTicket = document.getElementById("soTicket");
     const soServiceType = document.getElementById("soServiceType");
+    const soAssignedUser = document.getElementById("soAssignedUser");
     const soPriority = document.getElementById("soPriority");
     const soStatus = document.getElementById("soStatus");
     const soStartDate = document.getElementById("soStartDate");
@@ -28,6 +29,7 @@
     let ordersCache = [];
     let clientsCache = [];
     let ticketsCache = [];
+    let usersCache = [];
 
     function getLoggedUserId() {
         try {
@@ -96,7 +98,7 @@
         if (!Array.isArray(data) || !data.length) {
             table.innerHTML = `
             <tr>
-                <td colspan="8" class="text-center text-muted py-4">No se encontraron órdenes de servicio</td>
+                <td colspan="9" class="text-center text-muted py-4">No se encontraron órdenes de servicio</td>
             </tr>
         `;
             return;
@@ -111,6 +113,7 @@
                 ? `<button class="btn btn-link p-0 text-decoration-none open-ticket" data-ticket-id="${order.id_ticket}">${escapeHTML(order.ticket_number || "-")}</button>`
                 : "-"}
             </td>
+            <td>${escapeHTML(order.assigned_user || "-")}</td>
             <td>${escapeHTML(order.service_type || "-")}</td>
             <td><span class="badge ${getBadgeClassPriority(order.priority)}">${escapeHTML(capitalize(order.priority))}</span></td>
             <td><span class="badge ${getBadgeClassStatus(order.status)}">${escapeHTML(capitalize(order.status))}</span></td>
@@ -131,14 +134,16 @@
     }
 
     async function loadProspects() {
-        const [clientsRes, ticketsRes] = await Promise.all([
+        const [clientsRes, ticketsRes, usersRes] = await Promise.all([
             apiFetch("/api/clients"),
-            apiFetch("/api/tickets")
+            apiFetch("/api/tickets"),
+            apiFetch("/api/users")
         ]);
 
-        const [clientsPayload, ticketsPayload] = await Promise.all([
+        const [clientsPayload, ticketsPayload, usersPayload] = await Promise.all([
             clientsRes.json(),
-            ticketsRes.json()
+            ticketsRes.json(),
+            usersRes.json()
         ]);
 
         if (!clientsRes.ok || !clientsPayload.success) {
@@ -149,8 +154,13 @@
             throw new Error(ticketsPayload.message || "No se pudieron cargar tickets");
         }
 
+        if (!usersRes.ok || !usersPayload.success) {
+            throw new Error(usersPayload.message || "No se pudieron cargar usuarios");
+        }
+
         clientsCache = clientsPayload.data || [];
         ticketsCache = ticketsPayload.data || [];
+        usersCache = usersPayload.data || [];
 
         soProspect.innerHTML = `
         <option value="">Seleccionar cliente</option>
@@ -163,6 +173,13 @@
         <option value="">Sin ticket</option>
         ${ticketsCache
                 .map((ticket) => `<option value="${ticket.id_ticket}">${escapeHTML(ticket.ticket_number)} - ${escapeHTML(ticket.subject || "")}</option>`)
+                .join("")}
+        `;
+
+        soAssignedUser.innerHTML = `
+        <option value="">Sin asignar</option>
+        ${usersCache
+                .map((user) => `<option value="${user.id}">${escapeHTML(user.username)}</option>`)
                 .join("")}
         `;
     }
@@ -193,6 +210,7 @@
         form.reset();
         soId.value = "";
         soTicket.value = "";
+        soAssignedUser.value = "";
         soPriority.value = "medio";
         soStatus.value = "pendiente";
         modalTitle.textContent = "Nueva Orden de Servicio";
@@ -203,6 +221,7 @@
         soProspect.value = String(order.id_prospect || "");
         soTicket.value = order.id_ticket ? String(order.id_ticket) : "";
         soServiceType.value = order.service_type || "";
+        soAssignedUser.value = order.id_assigned_user ? String(order.id_assigned_user) : "";
         soPriority.value = String(order.priority || "medio").toLowerCase();
         soStatus.value = String(order.status || "pendiente").toLowerCase();
         soStartDate.value = order.start_date ? String(order.start_date).split("T")[0] : "";
@@ -220,6 +239,7 @@
             id_ticket: soTicket.value ? Number(soTicket.value) : null,
             id_prospect: Number(soProspect.value),
             id_created_by: getLoggedUserId(),
+            id_assigned_user: soAssignedUser.value ? Number(soAssignedUser.value) : null,
             service_type: soServiceType.value.trim(),
             description: soDescription.value.trim() || null,
             priority: soPriority.value,
@@ -277,6 +297,10 @@
                     <div class="col-md-6">
                         <div class="text-muted small">Ticket</div>
                         <div class="fw-semibold">${escapeHTML(order.ticket_number || "-")}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="text-muted small">Asignado a</div>
+                        <div class="fw-semibold">${escapeHTML(order.assigned_user || "-")}</div>
                     </div>
                     <div class="col-md-6">
                         <div class="text-muted small">Tipo de servicio</div>
@@ -393,7 +417,7 @@
         Promise.all([loadProspects(), loadOrders()]).catch(async (error) => {
             table.innerHTML = `
             <tr>
-                <td colspan="8" class="text-center text-danger py-4">${escapeHTML(error.message)}</td>
+                <td colspan="9" class="text-center text-danger py-4">${escapeHTML(error.message)}</td>
             </tr>
         `;
         });

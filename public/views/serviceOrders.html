@@ -39,6 +39,7 @@
                     <th>Folio</th>
                     <th>Cliente</th>
                     <th>Ticket</th>
+                    <th>Asignado a</th>
                     <th>Tipo de servicio</th>
                     <th>Prioridad</th>
                     <th>Estatus</th>
@@ -75,6 +76,13 @@
                             <div class="col-md-6">
                                 <label class="form-label">Tipo de servicio</label>
                                 <input type="text" class="form-control" id="soServiceType" required>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Asignado a</label>
+                                <select class="form-select" id="soAssignedUser">
+                                    <option value="">Sin asignar</option>
+                                </select>
                             </div>
 
                             <div class="col-md-6">

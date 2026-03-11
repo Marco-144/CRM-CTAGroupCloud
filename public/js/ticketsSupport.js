@@ -90,10 +90,32 @@
 		return `${date.toLocaleDateString("es-MX")} ${date.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}`;
 	}
 
+	function buildAttachmentUrl(rawPath) {
+		const text = String(rawPath || "").trim();
+		if (!text) return "";
+
+		if (/^https?:\/\//i.test(text)) {
+			return text;
+		}
+
+		let normalized = text.replace(/\\/g, "/");
+
+		normalized = normalized.replace(/^\/+/, "");
+
+		if (!normalized.startsWith("server/uploads/")) {
+			normalized = `server/uploads/${normalized.replace(/^uploads\//, "")}`;
+		}
+
+		return `/${encodeURI(normalized)}`;
+	}
+
 	function getAttachmentMarkup(attachmentPath) {
 		if (!attachmentPath) return "";
 
 		const safePath = String(attachmentPath || "");
+		const attachmentUrl = buildAttachmentUrl(safePath);
+		if (!attachmentUrl) return "";
+
 		const normalized = safePath.toLowerCase();
 		const imageExt = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg"];
 		const isImage = imageExt.some((ext) => normalized.endsWith(ext));
@@ -102,16 +124,18 @@
 		if (isImage) {
 			return `
 				<div class="mt-2">
-					<img src="/${safePath}" alt="Adjunto" class="img-fluid rounded border" style="max-height: 260px; object-fit: contain;">
+					<a href="${attachmentUrl}" target="_blank" rel="noopener">
+						<img src="${attachmentUrl}" alt="Adjunto" class="img-fluid rounded border" style="max-height: 260px; object-fit: contain;">
+					</a>
 				</div>
 			`;
 		}
 
 		if (isPdf) {
-			return `<div class="mt-2"><a href="/${safePath}" target="_blank" rel="noopener">Ver PDF adjunto</a></div>`;
+			return `<div class="mt-2"><a href="${attachmentUrl}" target="_blank" rel="noopener">Ver PDF adjunto</a></div>`;
 		}
 
-		return `<div class="mt-2"><a href="/${safePath}">Ver adjunto</a></div>`;
+		return `<div class="mt-2"><a href="${attachmentUrl}" target="_blank" rel="noopener">Ver adjunto</a></div>`;
 	}
 
 	function historyFieldLabel(fieldName) {

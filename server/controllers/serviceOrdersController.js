@@ -33,6 +33,7 @@ exports.getServiceOrders = async (req, res) => {
                 t.ticket_number,
                 so.id_prospect,
                 so.id_created_by,
+                so.id_assigned_user,
                 so.service_type,
                 so.description,
                 so.priority,
@@ -42,11 +43,13 @@ exports.getServiceOrders = async (req, res) => {
                 so.created_at,
                 so.updated_at,
                 p.company AS cliente,
-                u.username AS created_by
+                uc.username AS created_by,
+                ua.username AS assigned_user
             FROM service_orders so
             LEFT JOIN tickets t ON t.id_ticket = so.id_ticket
             LEFT JOIN prospects p ON p.id_prospect = so.id_prospect AND COALESCE(p.is_client, 0) = 1
-            LEFT JOIN users u ON u.id = so.id_created_by
+            LEFT JOIN users uc ON uc.id = so.id_created_by
+            LEFT JOIN users ua ON ua.id = so.id_assigned_user
             WHERE 1 = 1
         `;
 
@@ -101,11 +104,13 @@ exports.getServiceOrder = async (req, res) => {
                 t.ticket_number,
                 t.subject AS ticket_subject,
                 p.company AS cliente,
-                u.username AS created_by
+                uc.username AS created_by,
+                ua.username AS assigned_user
             FROM service_orders so
             LEFT JOIN tickets t ON t.id_ticket = so.id_ticket
             LEFT JOIN prospects p ON p.id_prospect = so.id_prospect AND COALESCE(p.is_client, 0) = 1
-            LEFT JOIN users u ON u.id = so.id_created_by
+            LEFT JOIN users uc ON uc.id = so.id_created_by
+            LEFT JOIN users ua ON ua.id = so.id_assigned_user
             WHERE so.id_service_order = ?
             LIMIT 1`,
             [id]
@@ -132,6 +137,7 @@ exports.createServiceOrder = async (req, res) => {
             id_ticket = null,
             id_prospect,
             id_created_by,
+            id_assigned_user,
             service_type,
             description,
             priority = "medio",
@@ -195,6 +201,7 @@ exports.createServiceOrder = async (req, res) => {
                   id_ticket,
                   id_prospect,
                   id_created_by,
+                  id_assigned_user,
                   service_type,
                   description,
                   priority,
@@ -202,12 +209,13 @@ exports.createServiceOrder = async (req, res) => {
                   start_date,
                   estimated_delivery
                 )
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 orderNumber,
                 safeTicketId,
                 Number(id_prospect),
                 Number(id_created_by || req.auth?.sub || 1),
+                id_assigned_user ? Number(id_assigned_user) : null,
                 String(service_type).trim(),
                 description || null,
                 String(priority).toLowerCase(),
@@ -260,6 +268,7 @@ exports.createServiceOrderFromTicket = async (req, res) => {
         const createdBy = Number(req.auth?.sub || 1);
         const {
             service_type,
+            id_assigned_user = null,
             description = null,
             priority = "medio",
             status = "pendiente",
@@ -304,6 +313,7 @@ exports.createServiceOrderFromTicket = async (req, res) => {
                   id_ticket,
                   id_prospect,
                   id_created_by,
+                  id_assigned_user,
                   service_type,
                   description,
                   priority,
@@ -311,12 +321,13 @@ exports.createServiceOrderFromTicket = async (req, res) => {
                   start_date,
                   estimated_delivery
                 )
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 orderNumber,
                 ticketId,
                 Number(ticket.id_prospect),
                 createdBy,
+                id_assigned_user ? Number(id_assigned_user) : null,
                 serviceTypeValue,
                 descriptionValue,
                 String(priority || ticket.priority || "medio").toLowerCase(),
@@ -360,6 +371,7 @@ exports.updateServiceOrder = async (req, res) => {
         const {
             id_ticket = null,
             id_prospect,
+            id_assigned_user,
             service_type,
             description,
             priority,
@@ -429,6 +441,7 @@ exports.updateServiceOrder = async (req, res) => {
              SET
                 id_ticket = ?,
                 id_prospect = ?,
+                id_assigned_user = ?,
                 service_type = ?,
                 description = ?,
                 priority = ?,
@@ -439,6 +452,7 @@ exports.updateServiceOrder = async (req, res) => {
             [
                 safeTicketId,
                 Number(id_prospect),
+                id_assigned_user ? Number(id_assigned_user) : null,
                 String(service_type).trim(),
                 description || null,
                 String(priority).toLowerCase(),
