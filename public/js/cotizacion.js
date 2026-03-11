@@ -768,8 +768,40 @@
         DESCARGAR PDF
     ============================ */
 
-    function downloadPDF(id) {
-        window.open(`/api/cotizaciones/${id}/pdf`, "_blank");
+    async function downloadPDF(id) {
+        const previewWindow = window.open("", "_blank");
+
+        try {
+            const response = await apiFetch(`/api/cotizaciones/${id}/pdf`, {
+                method: "GET"
+            });
+
+            if (!response) {
+                return;
+            }
+
+            if (!response.ok) {
+                const payload = await response.json().catch(() => ({}));
+                throw new Error(payload.message || "No se pudo generar el PDF");
+            }
+
+            const pdfBlob = await response.blob();
+            const blobUrl = URL.createObjectURL(pdfBlob);
+
+            if (previewWindow) {
+                previewWindow.location.href = blobUrl;
+            } else {
+                window.open(blobUrl, "_blank");
+            }
+
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 60 * 1000);
+        } catch (error) {
+            if (previewWindow) {
+                previewWindow.close();
+            }
+
+            await showAlert(error.message || "No se pudo abrir el PDF");
+        }
     }
 
     /* ============================
