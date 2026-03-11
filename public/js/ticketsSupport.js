@@ -8,9 +8,18 @@
 
 	const form = document.getElementById("ticketForm");
 	const modalTitle = document.getElementById("ticketModalTitle");
+	const conversationTitle = document.getElementById("ticketConversationTitle");
+	const conversationMeta = document.getElementById("ticketConversationMeta");
+	const responsesList = document.getElementById("ticketResponsesList");
+	const historyList = document.getElementById("ticketHistoryList");
+	const responseForm = document.getElementById("ticketResponseForm");
+	const conversationTicketId = document.getElementById("ticketConversationId");
+	const responseMessage = document.getElementById("ticketResponseMessage");
+	const ticketServiceOrdersList = document.getElementById("ticketServiceOrdersList");
+	const responseAttachment = document.getElementById("ticketResponseAttachment");
+	const createSOFromTicketBtn = document.getElementById("createSOFromTicketBtn");
 
 	const ticketId = document.getElementById("ticketId");
-	const ticketServiceOrder = document.getElementById("ticketServiceOrder");
 	const ticketProspect = document.getElementById("ticketProspect");
 	const ticketSubject = document.getElementById("ticketSubject");
 	const ticketDescription = document.getElementById("ticketDescription");
@@ -20,17 +29,28 @@
 	const ticketStatus = document.getElementById("ticketStatus");
 	const ticketType = document.getElementById("ticketType");
 	const ticketDueDate = document.getElementById("ticketDueDate");
+	const ticketAttachment = document.getElementById("ticketAttachment");
 
 	const ticketModal = bootstrap.Modal.getOrCreateInstance(document.getElementById("ticketModal"));
+	const conversationModal = bootstrap.Modal.getOrCreateInstance(document.getElementById("ticketConversationModal"));
 
 	const showAlert = window.showAppAlert || ((message) => Promise.resolve(window.alert(message)));
 	const showConfirm = window.showAppConfirm || ((message) => Promise.resolve(window.confirm(message)));
 
 	let ticketsCache = [];
-	let serviceOrdersCache = [];
-	let prospectsCache = [];
+	let clientsCache = [];
 	let departmentsCache = [];
 	let usersCache = [];
+
+	function consumePendingConversationId() {
+		const raw = window.pendingTicketConversationId || sessionStorage.getItem("pendingTicketConversationId") || "";
+		const safeId = Number(raw || 0);
+
+		window.pendingTicketConversationId = null;
+		sessionStorage.removeItem("pendingTicketConversationId");
+
+		return safeId > 0 ? safeId : null;
+	}
 
 	function getLoggedUserId() {
 		try {
@@ -63,6 +83,98 @@
 		return date.toLocaleDateString("es-MX");
 	}
 
+	function formatDateTime(dateValue) {
+		if (!dateValue) return "-";
+		const date = new Date(dateValue);
+		if (Number.isNaN(date.getTime())) return "-";
+		return `${date.toLocaleDateString("es-MX")} ${date.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}`;
+	}
+
+	function buildAttachmentUrl(rawPath) {
+		const text = String(rawPath || "").trim();
+		if (!text) return "";
+
+		if (/^https?:\/\//i.test(text)) {
+			return text;
+		}
+
+		let normalized = text.replace(/\\/g, "/");
+
+		normalized = normalized.replace(/^\/+/, "");
+
+		if (!normalized.startsWith("server/uploads/")) {
+			normalized = `server/uploads/${normalized.replace(/^uploads\//, "")}`;
+		}
+
+		return `/${encodeURI(normalized)}`;
+	}
+
+	function getAttachmentMarkup(attachmentPath) {
+		if (!attachmentPath) return "";
+
+		const safePath = String(attachmentPath || "");
+		const attachmentUrl = buildAttachmentUrl(safePath);
+		if (!attachmentUrl) return "";
+
+		const normalized = safePath.toLowerCase();
+		const imageExt = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg"];
+		const isImage = imageExt.some((ext) => normalized.endsWith(ext));
+		const isPdf = normalized.endsWith(".pdf");
+
+		if (isImage) {
+			return `
+				<div class="mt-2">
+					<a href="${attachmentUrl}" target="_blank" rel="noopener">
+						<img src="${attachmentUrl}" alt="Adjunto" class="img-fluid rounded border" style="max-height: 260px; object-fit: contain;">
+					</a>
+				</div>
+			`;
+		}
+
+		if (isPdf) {
+			return `<div class="mt-2"><a href="${attachmentUrl}" target="_blank" rel="noopener">Ver PDF adjunto</a></div>`;
+		}
+
+		return `<div class="mt-2"><a href="${attachmentUrl}" target="_blank" rel="noopener">Ver adjunto</a></div>`;
+	}
+
+	function historyFieldLabel(fieldName) {
+		const map = {
+			id_service_order: "orden de servicio",
+			service_order: "orden de servicio",
+			id_prospect: "cliente",
+			subject: "asunto",
+			description: "descripcion",
+			id_department: "departamento",
+			id_assigned_user: "usuario asignado",
+			priority: "prioridad",
+			status: "estatus",
+			ticket_type: "tipo de ticket",
+			due_date: "fecha limite",
+			has_service_order: "vinculacion de orden",
+			response: "respuesta",
+		};
+
+		return map[String(fieldName || "")] || "ticket";
+	}
+
+	function historyDescription(item) {
+		const field = String(item?.field_changed || "");
+		const label = historyFieldLabel(field);
+		const oldValue = item?.old_value === null || item?.old_value === undefined || item?.old_value === "" ? "sin valor" : String(item.old_value);
+		const newValue = item?.new_value === null || item?.new_value === undefined || item?.new_value === "" ? "sin valor" : String(item.new_value);
+
+		if (field === "response") {
+			return "Se agrego una respuesta";
+		}
+
+		if (field === "service_order") {
+			return item?.description || "Se agrego una orden de servicio";
+		}
+
+		return `Cambio de ${label}: ${oldValue} -> ${newValue}`;
+	}
+
 	function getStatusBadge(status) {
 		const map = {
 			abierto: "bg-secondary",
@@ -89,7 +201,7 @@
 		if (!Array.isArray(data) || !data.length) {
 			table.innerHTML = `
 			<tr>
-				<td colspan="7" class="text-center text-muted py-4">No se encontraron tickets</td>
+				<td colspan="9" class="text-center text-muted py-4">No se encontraron tickets</td>
 			</tr>
 		`;
 			return;
@@ -106,48 +218,189 @@
 			<td>${escapeHTML(ticket.subject || "-")}</td>
 			<td><span class="badge ${getPriorityBadge(ticket.priority)}">${escapeHTML(capitalize(ticket.priority))}</span></td>
 			<td><span class="badge ${getStatusBadge(ticket.status)}">${escapeHTML(capitalize(ticket.status))}</span></td>
+			<td class="text-center">${Number(ticket.total_service_orders || 0)}</td>
 			<td>${formatDate(ticket.created_at)}</td>
 			<td>${escapeHTML(ticket.assigned_user || "-")}</td>
+			<td class="text-end">
+				<button class="btn btn-sm btn-outline-primary conversation-ticket" data-id="${ticket.id_ticket}">
+					<i class="bi bi-chat-left-text"></i>
+				</button>
+			</td>
 		</tr>
 	`).join("");
 	}
 
+	function renderResponses(items) {
+		if (!Array.isArray(items) || !items.length) {
+			responsesList.innerHTML = `<div class="text-muted">No hay respuestas todavía.</div>`;
+			return;
+		}
+
+		responsesList.innerHTML = items.map((item) => {
+			const roleDept = `${item.role || "Sin rol"} / ${item.department || "Sin departamento"}`;
+			const attachment = getAttachmentMarkup(item.attachment);
+			return `
+				<div class="ticket-response-item">
+					<div class="ticket-response-head">
+						<strong>${escapeHTML(item.username || "Usuario")}</strong>
+						<span class="ticket-response-meta">${escapeHTML(formatDateTime(item.created_at))}</span>
+					</div>
+					<div class="ticket-response-meta mb-2">${escapeHTML(roleDept)}</div>
+					<div>${escapeHTML(item.message || "")}</div>
+					${attachment}
+				</div>
+			`;
+		}).join("");
+	}
+
+	function renderHistory(items) {
+		if (!Array.isArray(items) || !items.length) {
+			historyList.innerHTML = `<div class="text-muted">Sin cambios registrados.</div>`;
+			return;
+		}
+
+		historyList.innerHTML = items.map((item) => {
+			const roleDept = `${item.role || "Sin rol"} / ${item.department || "Sin departamento"}`;
+			return `
+				<div class="ticket-history-item">
+					<div class="ticket-history-head">
+						<strong>${escapeHTML(item.username || "Sistema")}</strong>
+						<span class="ticket-history-meta">${escapeHTML(formatDateTime(item.created_at))}</span>
+					</div>
+					<div class="ticket-history-meta mb-2">${escapeHTML(roleDept)}</div>
+					<div class="small text-muted">${escapeHTML(capitalize(historyFieldLabel(item.field_changed)))}</div>
+					<div>${escapeHTML(historyDescription(item))}</div>
+				</div>
+			`;
+		}).join("");
+	}
+
+	async function openConversation(ticketIdValue) {
+		const ticketIdNumber = Number(ticketIdValue);
+		if (!ticketIdNumber) return;
+
+		const response = await apiFetch(`/api/tickets/${ticketIdNumber}`);
+		const payload = await response.json().catch(() => ({}));
+
+		if (!response.ok || !payload.success || !payload.data) {
+			throw new Error(payload.message || "No se pudo cargar la conversacion del ticket");
+		}
+
+		const ticket = payload.data;
+		conversationTicketId.value = String(ticket.id_ticket);
+		responseMessage.value = "";
+		if (responseAttachment) responseAttachment.value = "";
+
+		conversationTitle.textContent = `Conversacion ${ticket.ticket_number || ""}`.trim();
+		conversationMeta.innerHTML = `
+			<div class="small text-muted">
+				<strong>Asunto:</strong> ${escapeHTML(ticket.subject || "-")}<br>
+				<strong>Cliente:</strong> ${escapeHTML(ticket.cliente || ticket.prospecto || "-")}<br>
+				<strong>Creador:</strong> ${escapeHTML(ticket.created_by || "-")} (${escapeHTML(ticket.created_by_role || "Sin rol")}/${escapeHTML(ticket.created_by_department || "Sin departamento")})
+			</div>
+		`;
+
+		const serviceOrders = Array.isArray(ticket.service_orders) ? ticket.service_orders : [];
+		if (ticketServiceOrdersList) {
+			if (!serviceOrders.length) {
+				ticketServiceOrdersList.innerHTML = `<span class="text-muted">Sin ordenes registradas para este ticket.</span>`;
+			} else {
+				ticketServiceOrdersList.innerHTML = serviceOrders.map((order) => {
+					return `<div class="mb-1"><strong>${escapeHTML(order.order_number || "-")}</strong> - ${escapeHTML(order.service_type || "-")} (${escapeHTML(capitalize(order.status || "pendiente"))})</div>`;
+				}).join("");
+			}
+		}
+
+		if (createSOFromTicketBtn) {
+			createSOFromTicketBtn.dataset.id = String(ticket.id_ticket);
+			createSOFromTicketBtn.classList.remove("d-none");
+		}
+
+		renderResponses(ticket.responses || []);
+		renderHistory(ticket.history || []);
+		conversationModal.show();
+	}
+
+	async function saveResponse(event) {
+		event.preventDefault();
+
+		const id = Number(conversationTicketId.value);
+		const message = responseMessage.value.trim();
+
+		if (!id || !message) {
+			await showAlert("El mensaje de respuesta es obligatorio");
+			return;
+		}
+
+		const formData = new FormData();
+		formData.append("message", message);
+		formData.append("id_user", String(getLoggedUserId()));
+
+		if (responseAttachment?.files?.[0]) {
+			formData.append("attachment", responseAttachment.files[0]);
+		}
+
+		const response = await apiFetch(`/api/tickets/${id}/responses`, {
+			method: "POST",
+			body: formData
+		});
+
+		const payload = await response.json().catch(() => ({}));
+		if (!response.ok || !payload.success) {
+			throw new Error(payload.message || "No se pudo enviar la respuesta");
+		}
+
+		await openConversation(id);
+		await loadTickets();
+	}
+
+	async function createServiceOrderFromTicket(ticketIdValue) {
+		const ticketIdNumber = Number(ticketIdValue);
+		if (!ticketIdNumber) return;
+
+		const confirmed = await showConfirm("¿Crear una orden de servicio con base en este ticket?");
+		if (!confirmed) return;
+
+		const response = await apiFetch(`/api/service-orders/from-ticket/${ticketIdNumber}`, {
+			method: "POST",
+			body: JSON.stringify({})
+		});
+
+		const payload = await response.json().catch(() => ({}));
+		if (!response.ok || !payload.success) {
+			throw new Error(payload.message || "No se pudo crear la orden desde el ticket");
+		}
+
+		await showAlert(`Orden creada: ${payload.order_number || payload.id_service_order}`);
+		await openConversation(ticketIdNumber);
+		await loadTickets();
+	}
+
 	async function loadCatalogs() {
-		const [ordersRes, prospectsRes, departmentsRes, usersRes] = await Promise.all([
-			apiFetch("/api/service-orders"),
-			apiFetch("/api/prospects?status=Activo"),
+		const [clientsRes, departmentsRes, usersRes] = await Promise.all([
+			apiFetch("/api/clients"),
 			apiFetch("/api/departments"),
 			apiFetch("/api/users")
 		]);
 
-		const [ordersPayload, prospectsPayload, departmentsPayload, usersPayload] = await Promise.all([
-			ordersRes.json(),
-			prospectsRes.json(),
+		const [clientsPayload, departmentsPayload, usersPayload] = await Promise.all([
+			clientsRes.json(),
 			departmentsRes.json(),
 			usersRes.json()
 		]);
 
-		if (!ordersRes.ok || !ordersPayload.success) throw new Error(ordersPayload.message || "No se pudieron cargar órdenes");
-		if (!prospectsRes.ok || !prospectsPayload.success) throw new Error(prospectsPayload.message || "No se pudieron cargar prospectos");
+		if (!clientsRes.ok || !clientsPayload.success) throw new Error(clientsPayload.message || "No se pudieron cargar clientes");
 		if (!departmentsRes.ok || !departmentsPayload.success) throw new Error(departmentsPayload.message || "No se pudieron cargar departamentos");
 		if (!usersRes.ok || !usersPayload.success) throw new Error(usersPayload.message || "No se pudieron cargar usuarios");
 
-		serviceOrdersCache = ordersPayload.data || [];
-		prospectsCache = prospectsPayload.data || [];
+		clientsCache = clientsPayload.data || [];
 		departmentsCache = departmentsPayload.data || [];
 		usersCache = usersPayload.data || [];
 
-		ticketServiceOrder.innerHTML = `
-		<option value="">Seleccionar orden</option>
-		${serviceOrdersCache.map((order) => `
-			<option value="${order.id_service_order}">${escapeHTML(order.order_number)} - ${escapeHTML(order.prospecto || "")}</option>
-		`).join("")}
-	`;
-
 		ticketProspect.innerHTML = `
-		<option value="">Seleccionar prospecto</option>
-		${prospectsCache.map((prospect) => `
-			<option value="${prospect.id_prospect}">${escapeHTML(prospect.company)}</option>
+		<option value="">Seleccionar cliente</option>
+		${clientsCache.map((client) => `
+			<option value="${client.id_client}">${escapeHTML(client.company)}</option>
 		`).join("")}
 	`;
 
@@ -196,12 +449,12 @@
 		ticketPriority.value = "medio";
 		ticketStatus.value = "abierto";
 		ticketType.value = "soporte";
+		if (ticketAttachment) ticketAttachment.value = "";
 		modalTitle.textContent = "Nuevo Ticket";
 	}
 
 	function fillForm(ticket) {
 		ticketId.value = ticket.id_ticket;
-		ticketServiceOrder.value = String(ticket.id_service_order || "");
 		ticketProspect.value = String(ticket.id_prospect || "");
 		ticketSubject.value = ticket.subject || "";
 		ticketDescription.value = ticket.description || "";
@@ -220,7 +473,6 @@
 		const id = ticketId.value;
 
 		const payload = {
-			id_service_order: Number(ticketServiceOrder.value),
 			id_prospect: Number(ticketProspect.value),
 			subject: ticketSubject.value.trim(),
 			description: ticketDescription.value.trim() || null,
@@ -234,19 +486,38 @@
 			id_user: getLoggedUserId()
 		};
 
-		if (!payload.id_service_order || !payload.id_prospect || !payload.subject || !payload.id_department) {
-			await showAlert("Orden, prospecto, asunto y departamento son obligatorios");
+		if (!payload.id_prospect || !payload.subject || !payload.id_department) {
+			await showAlert("Cliente, asunto y departamento son obligatorios");
 			return;
 		}
 
 		const endpoint = id ? `/api/tickets/${id}` : "/api/tickets";
 		const method = id ? "PUT" : "POST";
 
-		const response = await apiFetch(endpoint, {
-			method,
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify(payload)
-		});
+		let response;
+		if (method === "POST") {
+			const formData = new FormData();
+
+			Object.entries(payload).forEach(([key, value]) => {
+				if (value === null || value === undefined || value === "") return;
+				formData.append(key, String(value));
+			});
+
+			if (ticketAttachment?.files?.[0]) {
+				formData.append("attachment", ticketAttachment.files[0]);
+			}
+
+			response = await apiFetch(endpoint, {
+				method,
+				body: formData
+			});
+		} else {
+			response = await apiFetch(endpoint, {
+				method,
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(payload)
+			});
+		}
 
 		const result = await response.json().catch(() => ({}));
 
@@ -309,8 +580,14 @@
 
 		table.addEventListener("click", async (event) => {
 			const editBtn = event.target.closest(".edit-ticket");
+			const conversationBtn = event.target.closest(".conversation-ticket");
 
 			try {
+				if (conversationBtn) {
+					await openConversation(conversationBtn.dataset.id);
+					return;
+				}
+
 				if (editBtn) {
 					const ticket = ticketsCache.find((item) => Number(item.id_ticket) === Number(editBtn.dataset.id));
 					if (!ticket) return;
@@ -325,10 +602,35 @@
 			}
 		});
 
-		Promise.all([loadCatalogs(), loadTickets()]).catch((error) => {
+		responseForm?.addEventListener("submit", async (event) => {
+			try {
+				await saveResponse(event);
+			} catch (error) {
+				await showAlert(error.message);
+			}
+		});
+
+		createSOFromTicketBtn?.addEventListener("click", async (event) => {
+			try {
+				await createServiceOrderFromTicket(event.currentTarget.dataset.id);
+			} catch (error) {
+				await showAlert(error.message);
+			}
+		});
+
+		Promise.all([loadCatalogs(), loadTickets()]).then(async () => {
+			const pendingId = consumePendingConversationId();
+			if (!pendingId) return;
+
+			try {
+				await openConversation(pendingId);
+			} catch (error) {
+				await showAlert(error.message || "No se pudo abrir el ticket solicitado");
+			}
+		}).catch((error) => {
 			table.innerHTML = `
 			<tr>
-				<td colspan="7" class="text-center text-danger py-4">${escapeHTML(error.message)}</td>
+				<td colspan="9" class="text-center text-danger py-4">${escapeHTML(error.message)}</td>
 			</tr>
 		`;
 		});

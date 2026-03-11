@@ -7,54 +7,56 @@ exports.getTickets = async (req, res) => {
             status = "",
             priority = "",
             ticket_type = "",
-            id_service_order = "",
+            has_service_order = "",
         } = req.query;
 
         let query = `
-      SELECT
-        t.id_ticket,
-        t.ticket_number,
-        t.id_service_order,
-        so.order_number,
-        t.id_prospect,
-        p.company AS prospecto,
-        t.subject,
-        t.description,
-        t.id_department,
-        d.name AS department,
-        t.id_created_by,
-        uc.username AS created_by,
-        t.id_assigned_user,
-        ua.username AS assigned_user,
-        t.priority,
-        t.status,
-        t.ticket_type,
-        t.due_date,
-        t.created_at,
-        t.updated_at
-      FROM tickets t
-      LEFT JOIN service_orders so ON so.id_service_order = t.id_service_order
-      LEFT JOIN prospects p ON p.id_prospect = t.id_prospect
-      LEFT JOIN departments d ON d.id_department = t.id_department
-      LEFT JOIN users uc ON uc.id = t.id_created_by
-      LEFT JOIN users ua ON ua.id = t.id_assigned_user
-      WHERE 1 = 1
-    `;
+            SELECT
+                t.id_ticket,
+                t.ticket_number,
+                t.id_prospect,
+                p.company AS cliente,
+                t.subject,
+                t.description,
+                t.id_department,
+                d.name AS department,
+                t.id_created_by,
+                uc.username AS created_by,
+                t.id_assigned_user,
+                ua.username AS assigned_user,
+                t.priority,
+                t.status,
+                t.ticket_type,
+                t.due_date,
+                t.has_service_order,
+                (
+                    SELECT COUNT(*)
+                    FROM service_orders so
+                    WHERE so.id_ticket = t.id_ticket
+                ) AS total_service_orders,
+                t.created_at,
+                t.updated_at
+            FROM tickets t
+            LEFT JOIN prospects p ON p.id_prospect = t.id_prospect AND COALESCE(p.is_client, 0) = 1
+            LEFT JOIN departments d ON d.id_department = t.id_department
+            LEFT JOIN users uc ON uc.id = t.id_created_by
+            LEFT JOIN users ua ON ua.id = t.id_assigned_user
+            WHERE 1 = 1
+        `;
 
         const params = [];
 
         if (search) {
             const searchTerm = `%${search}%`;
             query += `
-        AND (
-          t.ticket_number LIKE ?
-          OR t.subject LIKE ?
-          OR t.description LIKE ?
-          OR p.company LIKE ?
-          OR so.order_number LIKE ?
-        )
-      `;
-            params.push(searchTerm, searchTerm, searchTerm, searchTerm, searchTerm);
+                AND (
+                    t.ticket_number LIKE ?
+                    OR t.subject LIKE ?
+                    OR t.description LIKE ?
+                    OR p.company LIKE ?
+                )
+            `;
+            params.push(searchTerm, searchTerm, searchTerm, searchTerm);
         }
 
         if (status) {
@@ -72,9 +74,9 @@ exports.getTickets = async (req, res) => {
             params.push(ticket_type);
         }
 
-        if (id_service_order) {
-            query += " AND t.id_service_order = ?";
-            params.push(Number(id_service_order));
+        if (has_service_order === "0" || has_service_order === "1") {
+            query += " AND t.has_service_order = ?";
+            params.push(Number(has_service_order));
         }
 
         query += " ORDER BY t.id_ticket DESC";
@@ -93,34 +95,40 @@ exports.getTicket = async (req, res) => {
 
         const [rows] = await db.query(
             `SELECT
-        t.id_ticket,
-        t.ticket_number,
-        t.id_service_order,
-        so.order_number,
-        t.id_prospect,
-        p.company AS prospecto,
-        t.subject,
-        t.description,
-        t.id_department,
-        d.name AS department,
-        t.id_created_by,
-        uc.username AS created_by,
-        t.id_assigned_user,
-        ua.username AS assigned_user,
-        t.priority,
-        t.status,
-        t.ticket_type,
-        t.due_date,
-        t.created_at,
-        t.updated_at
-      FROM tickets t
-      LEFT JOIN service_orders so ON so.id_service_order = t.id_service_order
-      LEFT JOIN prospects p ON p.id_prospect = t.id_prospect
-      LEFT JOIN departments d ON d.id_department = t.id_department
-      LEFT JOIN users uc ON uc.id = t.id_created_by
-      LEFT JOIN users ua ON ua.id = t.id_assigned_user
-      WHERE t.id_ticket = ?
-      LIMIT 1`,
+                t.id_ticket,
+                t.ticket_number,
+                t.id_prospect,
+                p.company AS cliente,
+                t.subject,
+                t.description,
+                t.id_department,
+                d.name AS department,
+                t.id_created_by,
+                uc.username AS created_by,
+                rc.name AS created_by_role,
+                dc.name AS created_by_department,
+                t.id_assigned_user,
+                ua.username AS assigned_user,
+                ra.name AS assigned_user_role,
+                da.name AS assigned_user_department,
+                t.priority,
+                t.status,
+                t.ticket_type,
+                t.due_date,
+                t.has_service_order,
+                t.created_at,
+                t.updated_at
+            FROM tickets t
+            LEFT JOIN prospects p ON p.id_prospect = t.id_prospect AND COALESCE(p.is_client, 0) = 1
+            LEFT JOIN departments d ON d.id_department = t.id_department
+            LEFT JOIN users uc ON uc.id = t.id_created_by
+            LEFT JOIN roles rc ON rc.id_role = uc.id_role
+            LEFT JOIN departments dc ON dc.id_department = uc.id_department
+            LEFT JOIN users ua ON ua.id = t.id_assigned_user
+            LEFT JOIN roles ra ON ra.id_role = ua.id_role
+            LEFT JOIN departments da ON da.id_department = ua.id_department
+            WHERE t.id_ticket = ?
+            LIMIT 1`,
             [id]
         );
 
@@ -130,42 +138,130 @@ exports.getTicket = async (req, res) => {
 
         const [responses] = await db.query(
             `SELECT
-        tr.id_ticket_responses,
-        tr.id_ticket,
-        tr.id_user,
-        u.username,
-        tr.message,
-        tr.attachment,
-        tr.created_at
-      FROM ticket_responses tr
-      LEFT JOIN users u ON u.id = tr.id_user
-      WHERE tr.id_ticket = ?
-      ORDER BY tr.id_ticket_responses ASC`,
+                tr.id_ticket_responses,
+                tr.id_ticket,
+                tr.id_user,
+                u.username,
+                r.name AS role,
+                d.name AS department,
+                tr.message,
+                tr.attachment,
+                tr.created_at
+            FROM ticket_responses tr
+            LEFT JOIN users u ON u.id = tr.id_user
+            LEFT JOIN roles r ON r.id_role = u.id_role
+            LEFT JOIN departments d ON d.id_department = u.id_department
+            WHERE tr.id_ticket = ?
+            ORDER BY tr.id_ticket_responses ASC`,
             [id]
         );
 
         const [history] = await db.query(
             `SELECT
-        th.id_ticket_history,
-        th.id_ticket,
-        th.id_user,
-        u.username,
-        th.field_changed,
-        th.old_value,
-        th.new_value,
-        th.description,
-        th.created_at
-      FROM ticket_history th
-      LEFT JOIN users u ON u.id = th.id_user
-      WHERE th.id_ticket = ?
-      ORDER BY th.id_ticket_history DESC`,
+                th.id_ticket_history,
+                th.id_ticket,
+                th.id_user,
+                u.username,
+                r.name AS role,
+                d.name AS department,
+                th.field_changed,
+                th.old_value,
+                th.new_value,
+                th.description,
+                th.created_at
+            FROM ticket_history th
+            LEFT JOIN users u ON u.id = th.id_user
+            LEFT JOIN roles r ON r.id_role = u.id_role
+            LEFT JOIN departments d ON d.id_department = u.id_department
+            WHERE th.id_ticket = ?
+            ORDER BY th.id_ticket_history DESC`,
             [id]
         );
 
-        res.json({ success: true, data: { ...rows[0], responses, history } });
+        const [serviceOrders] = await db.query(
+            `SELECT
+                so.id_service_order,
+                so.order_number,
+                so.service_type,
+                so.priority,
+                so.status,
+                so.start_date,
+                so.estimated_delivery,
+                so.created_at
+            FROM service_orders so
+            WHERE so.id_ticket = ?
+            ORDER BY so.id_service_order DESC`,
+            [id]
+        );
+
+        res.json({
+            success: true,
+            data: {
+                ...rows[0],
+                responses,
+                history,
+                service_orders: serviceOrders,
+            },
+        });
     } catch (error) {
         console.error("Error obteniendo ticket:", error);
         res.status(500).json({ success: false, message: "Error del servidor" });
+    }
+};
+
+exports.createTicketResponse = async (req, res) => {
+    const connection = await db.getConnection();
+
+    try {
+        await connection.beginTransaction();
+
+        const ticketId = Number(req.params.id);
+        const message = String(req.body?.message || "").trim();
+        const attachment = req.file
+            ? `server/uploads/ticket_attachments/${req.file.filename}`
+            : (req.body?.attachment ? String(req.body.attachment).trim() : null);
+        const userId = Number(req.auth?.sub || req.body?.id_user || 1);
+
+        if (!ticketId || !message) {
+            await connection.rollback();
+            return res.status(400).json({ success: false, message: "Ticket y mensaje son obligatorios" });
+        }
+
+        const [ticketRows] = await connection.query(
+            `SELECT id_ticket
+             FROM tickets
+             WHERE id_ticket = ?
+             LIMIT 1`,
+            [ticketId]
+        );
+
+        if (!ticketRows.length) {
+            await connection.rollback();
+            return res.status(404).json({ success: false, message: "Ticket no encontrado" });
+        }
+
+        await connection.query(
+            `INSERT INTO ticket_responses
+                (id_ticket, id_user, message, attachment)
+             VALUES (?, ?, ?, ?)`,
+            [ticketId, userId, message, attachment || null]
+        );
+
+        await connection.query(
+            `INSERT INTO ticket_history
+                (id_ticket, id_user, field_changed, old_value, new_value, description)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [ticketId, userId, "response", null, "message", "Se agrego una respuesta al ticket"]
+        );
+
+        await connection.commit();
+        res.status(201).json({ success: true });
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error agregando respuesta al ticket:", error);
+        res.status(500).json({ success: false, message: "Error del servidor" });
+    } finally {
+        connection.release();
     }
 };
 
@@ -176,7 +272,6 @@ exports.createTicket = async (req, res) => {
         await connection.beginTransaction();
 
         const {
-            id_service_order,
             id_prospect,
             subject,
             description,
@@ -189,44 +284,59 @@ exports.createTicket = async (req, res) => {
             due_date = null,
         } = req.body;
 
-        if (!id_service_order || !id_prospect || !subject || !id_department) {
+        const attachmentPath = req.file ? `server/uploads/ticket_attachments/${req.file.filename}` : null;
+
+        if (!id_prospect || !subject || !id_department) {
             await connection.rollback();
-            return res.status(400).json({ success: false, message: "Datos incompletos" });
+            return res.status(400).json({ success: false, message: "Cliente, asunto y departamento son obligatorios" });
+        }
+
+        const [clientRows] = await connection.query(
+            `SELECT id_prospect
+             FROM prospects
+             WHERE id_prospect = ?
+               AND COALESCE(is_client, 0) = 1
+             LIMIT 1`,
+            [Number(id_prospect)]
+        );
+
+        if (!clientRows.length) {
+            await connection.rollback();
+            return res.status(400).json({ success: false, message: "El cliente seleccionado no es valido" });
         }
 
         const [[nextRow]] = await connection.query(
             `SELECT COALESCE(MAX(id_ticket), 0) + 1 AS nextId
-       FROM tickets
-       FOR UPDATE`
+             FROM tickets
+             FOR UPDATE`
         );
 
         const ticketNumber = `TK-${String(nextRow.nextId).padStart(5, "0")}`;
 
         const [result] = await connection.query(
             `INSERT INTO tickets
-        (
-          ticket_number,
-          id_service_order,
-          id_prospect,
-          subject,
-          description,
-          id_department,
-          id_created_by,
-          id_assigned_user,
-          priority,
-          status,
-          ticket_type,
-          due_date
-        )
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                (
+                  ticket_number,
+                  id_prospect,
+                  subject,
+                  description,
+                  id_department,
+                  id_created_by,
+                  id_assigned_user,
+                  priority,
+                  status,
+                  ticket_type,
+                  due_date,
+                  has_service_order
+                )
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
             [
                 ticketNumber,
-                Number(id_service_order),
                 Number(id_prospect),
                 String(subject).trim(),
                 description || null,
                 Number(id_department),
-                Number(id_created_by || 1),
+                Number(id_created_by || req.auth?.sub || 1),
                 id_assigned_user ? Number(id_assigned_user) : null,
                 String(priority).toLowerCase(),
                 String(status).toLowerCase(),
@@ -234,6 +344,21 @@ exports.createTicket = async (req, res) => {
                 due_date || null,
             ]
         );
+
+        const initialMessage = String(description || "").trim();
+        if (initialMessage || attachmentPath) {
+            await connection.query(
+                `INSERT INTO ticket_responses
+                    (id_ticket, id_user, message, attachment)
+                 VALUES (?, ?, ?, ?)`,
+                [
+                    result.insertId,
+                    Number(id_created_by || req.auth?.sub || 1),
+                    initialMessage || "Adjunto inicial del ticket",
+                    attachmentPath,
+                ]
+            );
+        }
 
         await connection.commit();
         res.status(201).json({
@@ -258,7 +383,6 @@ exports.updateTicket = async (req, res) => {
 
         const id = Number(req.params.id);
         const {
-            id_service_order,
             id_prospect,
             subject,
             description,
@@ -273,19 +397,19 @@ exports.updateTicket = async (req, res) => {
 
         const [existingRows] = await connection.query(
             `SELECT
-        id_service_order,
-        id_prospect,
-        subject,
-        description,
-        id_department,
-        id_assigned_user,
-        priority,
-        status,
-        ticket_type,
-        due_date
-      FROM tickets
-      WHERE id_ticket = ?
-      LIMIT 1`,
+                id_prospect,
+                subject,
+                description,
+                id_department,
+                id_assigned_user,
+                priority,
+                status,
+                ticket_type,
+                due_date,
+                has_service_order
+             FROM tickets
+             WHERE id_ticket = ?
+             LIMIT 1`,
             [id]
         );
 
@@ -294,25 +418,37 @@ exports.updateTicket = async (req, res) => {
             return res.status(404).json({ success: false, message: "Ticket no encontrado" });
         }
 
+        const [clientRows] = await connection.query(
+            `SELECT id_prospect
+             FROM prospects
+             WHERE id_prospect = ?
+               AND COALESCE(is_client, 0) = 1
+             LIMIT 1`,
+            [Number(id_prospect)]
+        );
+
+        if (!clientRows.length) {
+            await connection.rollback();
+            return res.status(400).json({ success: false, message: "El cliente seleccionado no es valido" });
+        }
+
         const existing = existingRows[0];
         const cleanTicketType = String(ticket_type || existing.ticket_type).toLowerCase();
 
         await connection.query(
             `UPDATE tickets
-       SET
-        id_service_order = ?,
-        id_prospect = ?,
-        subject = ?,
-        description = ?,
-        id_department = ?,
-        id_assigned_user = ?,
-        priority = ?,
-        status = ?,
-        ticket_type = ?,
-        due_date = ?
-       WHERE id_ticket = ?`,
+             SET
+                id_prospect = ?,
+                subject = ?,
+                description = ?,
+                id_department = ?,
+                id_assigned_user = ?,
+                priority = ?,
+                status = ?,
+                ticket_type = ?,
+                due_date = ?
+             WHERE id_ticket = ?`,
             [
-                Number(id_service_order),
                 Number(id_prospect),
                 String(subject).trim(),
                 description || null,
@@ -326,9 +462,24 @@ exports.updateTicket = async (req, res) => {
             ]
         );
 
-        const auditUserId = Number(id_user || 1);
+        const [[orderCountRow]] = await connection.query(
+            `SELECT COUNT(*) AS total
+             FROM service_orders
+             WHERE id_ticket = ?`,
+            [id]
+        );
+
+        const hasServiceOrder = Number(orderCountRow?.total || 0) > 0 ? 1 : 0;
+
+        await connection.query(
+            `UPDATE tickets
+             SET has_service_order = ?
+             WHERE id_ticket = ?`,
+            [hasServiceOrder, id]
+        );
+
+        const auditUserId = Number(id_user || req.auth?.sub || 1);
         const changes = [
-            ["id_service_order", existing.id_service_order, id_service_order],
             ["id_prospect", existing.id_prospect, id_prospect],
             ["subject", existing.subject, subject],
             ["description", existing.description, description],
@@ -338,6 +489,7 @@ exports.updateTicket = async (req, res) => {
             ["status", existing.status, String(status).toLowerCase()],
             ["ticket_type", existing.ticket_type, cleanTicketType],
             ["due_date", existing.due_date, due_date || null],
+            ["has_service_order", existing.has_service_order, hasServiceOrder],
         ];
 
         for (const [field, oldValue, newValue] of changes) {
@@ -348,8 +500,8 @@ exports.updateTicket = async (req, res) => {
 
             await connection.query(
                 `INSERT INTO ticket_history
-          (id_ticket, id_user, field_changed, old_value, new_value, description)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+                    (id_ticket, id_user, field_changed, old_value, new_value, description)
+                 VALUES (?, ?, ?, ?, ?, ?)`,
                 [
                     id,
                     auditUserId,

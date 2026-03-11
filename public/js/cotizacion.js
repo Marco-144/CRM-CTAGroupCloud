@@ -14,10 +14,212 @@
     const viewModal = new bootstrap.Modal(document.getElementById("viewCotizacionModal"));
     const viewBody = document.getElementById("viewCotizacionBody");
     const toggleFromDetailBtn = document.getElementById("toggleFromDetailBtn");
+    const cancelCotizacionBtn = document.getElementById("cancelCotizacionBtn");
 
     let cotizacionesCache = [];
     let filteredData = [];
     let currentViewId = null;
+    let saleModalRefs = null;
+
+    function getSaleModalRefs() {
+        if (saleModalRefs) return saleModalRefs;
+
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = `
+            <div class="modal fade" id="createSaleModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-xl modal-dialog-scrollable modal-fullscreen-sm-down">
+                    <div class="modal-content rounded-4">
+                        <div class="modal-header">
+                            <h5 class="modal-title fw-semibold">Generar venta</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <form id="createSaleForm">
+                            <div class="modal-body sale-modal-body">
+                                <input type="hidden" id="saleQuoteId">
+                                <input type="hidden" id="saleProspectId">
+
+                                <h6 class="fw-semibold mb-3">Datos fiscales del cliente</h6>
+                                <div class="row g-3 mb-4">
+                                    <div class="col-md-4">
+                                        <label class="form-label">RFC</label>
+                                        <input class="form-control" id="saleRfc" maxlength="20">
+                                    </div>
+                                    <div class="col-md-8">
+                                        <label class="form-label">Razon social</label>
+                                        <input class="form-control" id="saleFiscalName">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Regimen fiscal</label>
+                                        <input class="form-control" id="saleFiscalRegime">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Email fiscal</label>
+                                        <input type="email" class="form-control" id="saleBillingEmail">
+                                    </div>
+                                    <div class="col-md-12">
+                                        <label class="form-label">Direccion</label>
+                                        <input class="form-control" id="saleAddress">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Ciudad</label>
+                                        <input class="form-control" id="saleCity">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Estado</label>
+                                        <input class="form-control" id="saleState">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">CP</label>
+                                        <input class="form-control" id="salePostalCode">
+                                    </div>
+                                    <div class="col-md-12">
+                                        <label class="form-label">Constancia de situacion fiscal (PDF)</label>
+                                        <input type="file" class="form-control" id="saleFiscalDoc" accept="application/pdf">
+                                        <small class="text-muted">Opcional: se guardara en server/uploads/fiscal_docs</small>
+                                    </div>
+                                </div>
+
+                                <h6 class="fw-semibold mb-3">Pago inicial (opcional)</h6>
+                                <div class="row g-3 mb-4">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Monto</label>
+                                        <input type="number" class="form-control" id="saleInitialAmount" min="0" step="0.01" value="0">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Metodo</label>
+                                        <select class="form-select" id="salePaymentMethod">
+                                            <option value="Transferencia">Transferencia</option>
+                                            <option value="Efectivo">Efectivo</option>
+                                            <option value="Tarjeta">Tarjeta</option>
+                                            <option value="Cheque">Cheque</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Referencia</label>
+                                        <input class="form-control" id="salePaymentReference">
+                                    </div>
+                                </div>
+
+                                <div class="mb-0">
+                                    <label class="form-label">Notas de venta</label>
+                                    <textarea class="form-control" id="saleNotes" rows="2"></textarea>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                <button type="submit" class="btn btn-success">Generar venta</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(wrapper.firstElementChild);
+
+        const modalEl = document.getElementById("createSaleModal");
+        const form = document.getElementById("createSaleForm");
+
+        saleModalRefs = {
+            modalEl,
+            modal: bootstrap.Modal.getOrCreateInstance(modalEl),
+            form,
+            quoteId: document.getElementById("saleQuoteId"),
+            prospectId: document.getElementById("saleProspectId"),
+            rfc: document.getElementById("saleRfc"),
+            fiscalName: document.getElementById("saleFiscalName"),
+            fiscalRegime: document.getElementById("saleFiscalRegime"),
+            billingEmail: document.getElementById("saleBillingEmail"),
+            address: document.getElementById("saleAddress"),
+            city: document.getElementById("saleCity"),
+            state: document.getElementById("saleState"),
+            postalCode: document.getElementById("salePostalCode"),
+            fiscalDoc: document.getElementById("saleFiscalDoc"),
+            initialAmount: document.getElementById("saleInitialAmount"),
+            paymentMethod: document.getElementById("salePaymentMethod"),
+            paymentReference: document.getElementById("salePaymentReference"),
+            notes: document.getElementById("saleNotes"),
+        };
+
+        form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            try {
+                const quoteId = Number(saleModalRefs.quoteId.value);
+                if (!quoteId) {
+                    await showAlert("Cotizacion invalida");
+                    return;
+                }
+
+                const amount = Number(saleModalRefs.initialAmount.value || 0);
+                const prospectId = Number(saleModalRefs.prospectId.value || 0);
+                const fiscalDocFile = saleModalRefs.fiscalDoc.files?.[0] || null;
+
+                if (fiscalDocFile) {
+                    const profileFormData = new FormData();
+                    profileFormData.append("rfc", saleModalRefs.rfc.value.trim());
+                    profileFormData.append("fiscal_name", saleModalRefs.fiscalName.value.trim());
+                    profileFormData.append("fiscal_regime", saleModalRefs.fiscalRegime.value.trim());
+                    profileFormData.append("billing_email", saleModalRefs.billingEmail.value.trim());
+                    profileFormData.append("address", saleModalRefs.address.value.trim());
+                    profileFormData.append("city", saleModalRefs.city.value.trim());
+                    profileFormData.append("state", saleModalRefs.state.value.trim());
+                    profileFormData.append("postal_code", saleModalRefs.postalCode.value.trim());
+                    profileFormData.append("country", "Mexico");
+                    profileFormData.append("tax_certificate_pdf", fiscalDocFile);
+
+                    const uploadResponse = await apiFetch(`/api/clients/${prospectId}/profile`, {
+                        method: "PUT",
+                        body: profileFormData,
+                    });
+
+                    const uploadPayload = await uploadResponse.json().catch(() => ({}));
+                    if (!uploadResponse.ok || !uploadPayload.success) {
+                        throw new Error(uploadPayload.message || "No se pudo subir la constancia fiscal");
+                    }
+                }
+
+                const payload = {
+                    clientProfile: {
+                        rfc: saleModalRefs.rfc.value.trim(),
+                        fiscal_name: saleModalRefs.fiscalName.value.trim(),
+                        fiscal_regime: saleModalRefs.fiscalRegime.value.trim(),
+                        billing_email: saleModalRefs.billingEmail.value.trim(),
+                        address: saleModalRefs.address.value.trim(),
+                        city: saleModalRefs.city.value.trim(),
+                        state: saleModalRefs.state.value.trim(),
+                        postal_code: saleModalRefs.postalCode.value.trim(),
+                        country: "Mexico",
+                    },
+                    payment: {
+                        amount,
+                        payment_method: saleModalRefs.paymentMethod.value,
+                        reference: saleModalRefs.paymentReference.value.trim(),
+                    },
+                    notes: saleModalRefs.notes.value.trim(),
+                };
+
+                const response = await apiFetch(`/api/sales/from-quote/${quoteId}`, {
+                    method: "POST",
+                    body: JSON.stringify(payload),
+                });
+
+                const result = await response.json().catch(() => ({}));
+
+                if (!response.ok || !result.success) {
+                    throw new Error(result.message || "No se pudo generar la venta");
+                }
+
+                saleModalRefs.modal.hide();
+                await showAlert(`Venta generada correctamente (${result.sale_folio || "sin folio"})`);
+                await loadCotizaciones();
+            } catch (error) {
+                await showAlert(error.message || "Error al generar la venta");
+            }
+        });
+
+        return saleModalRefs;
+    }
 
 
     /* ============================
@@ -119,7 +321,8 @@
 
         const statusMap = {
             status_activo: "Activo",
-            status_inactivo: "Inactivo"
+            status_inactivo: "Inactivo",
+            status_cancelada: "Cancelada"
         };
 
         const selectedStatus = statusMap[activeFilter] || "";
@@ -219,6 +422,15 @@
             const folio = String(item.Folio ?? item.folio ?? 0).padStart(5, "0");
             const isInactive = item.status === "Inactivo";
             const isCompleted = item.status === "Completada";
+            const isCancelled = item.status === "Cancelada";
+            const statusBadgeClass = isCompleted
+                ? "bg-primary"
+                : isCancelled
+                    ? "bg-danger"
+                    : isInactive
+                        ? "bg-secondary"
+                        : "bg-success";
+            const isPdfDisabled = isInactive || isCancelled;
 
             return `
         <tr>
@@ -228,10 +440,7 @@
                 ${isCompleted
                     ? `<span class="badge bg-primary">${item.status || "Activo"}</span>`
                     : `<button class="btn btn-sm p-0 border-0 bg-transparent status-inline-btn" data-id="${item.id_cotizacion}" title="Cambiar estatus">
-                        <span class="badge ${isInactive
-                        ? "bg-secondary"
-                        : "bg-success"
-                    }">
+                        <span class="badge ${statusBadgeClass}">
                     ${item.status || "Activo"}
                 </span>
                     </button>`}
@@ -252,20 +461,22 @@
                     <i class="bi bi-pencil"></i>
                 </button>
 
-                <button class="btn btn-sm btn-outline-success me-2 complete-sale-btn"
-                    data-id="${item.id_cotizacion}">
-                    <i class="bi bi-bag-check"></i>
-                </button>
-
                 <button class="btn btn-sm btn-outline-danger me-2 delete-btn"
                     data-id="${item.id_cotizacion}">
                     <i class="bi bi-trash"></i>
                 </button>
 
-                <button class="btn btn-sm btn-outline-primary pdf-btn ${isInactive ? "disabled" : ""}"
+                <div class="vr me-2 "></div>
+
+                <button class="btn btn-sm btn-outline-primary pdf-btn ${isPdfDisabled ? "disabled" : ""}"
                     data-id="${item.id_cotizacion}"
-                    ${isInactive ? "disabled title='Cotización inactiva: PDF no disponible'" : ""}>
+                    ${isPdfDisabled ? "disabled title='Cotizacion inactiva/cancelada: PDF no disponible'" : ""}>
                     <i class="bi bi-filetype-pdf"></i>
+                </button>
+
+                <button class="btn btn-sm btn-outline-success me-2 complete-sale-btn"
+                    data-id="${item.id_cotizacion}">
+                    <i class="bi bi-bag-check"></i>
                 </button>
 
             </td>
@@ -423,9 +634,15 @@
         </div>
     `;
 
-        toggleFromDetailBtn.textContent = cot.status === "Inactivo"
-            ? "Activar cotización"
-            : "Desactivar cotización";
+        if (cot.status === "Cancelada") {
+            toggleFromDetailBtn.textContent = "Activar cotizacion";
+            cancelCotizacionBtn?.setAttribute("disabled", "disabled");
+        } else {
+            toggleFromDetailBtn.textContent = cot.status === "Inactivo"
+                ? "Activar cotizacion"
+                : "Desactivar cotizacion";
+            cancelCotizacionBtn?.removeAttribute("disabled");
+        }
 
         viewModal.show();
 
@@ -439,6 +656,28 @@
         if (!currentViewId) return;
 
         await toggleCotizacionStatus(currentViewId);
+        await openViewModal(currentViewId);
+    });
+
+    cancelCotizacionBtn?.addEventListener("click", async () => {
+        if (!currentViewId) return;
+
+        const confirmed = await showConfirm("¿Deseas marcar esta cotizacion como cancelada?");
+        if (!confirmed) return;
+
+        const res = await apiFetch(`/api/cotizaciones/${currentViewId}/status`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "Cancelada" })
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success) {
+            await showAlert(data.message || "No se pudo cancelar la cotizacion");
+            return;
+        }
+
+        await loadCotizaciones();
         await openViewModal(currentViewId);
     });
 
@@ -473,22 +712,39 @@
     }
 
     async function completeCotizacionSale(id) {
-        const confirmed = await showConfirm("¿Deseas completar esta cotización como venta?");
-        if (!confirmed) return;
+        const refs = getSaleModalRefs();
 
-        const res = await apiFetch(`/api/cotizaciones/${id}/complete`, {
-            method: "PATCH"
-        });
+        const quoteResponse = await apiFetch(`/api/cotizaciones/${id}`);
+        const quotePayload = await quoteResponse.json().catch(() => ({}));
 
-        const data = await res.json().catch(() => ({}));
-
-        if (!res.ok || !data.success) {
-            await showAlert(data.message || "No se pudo completar la venta");
+        if (!quoteResponse.ok || !quotePayload.success) {
+            await showAlert(quotePayload.message || "No se pudo cargar la cotizacion");
             return;
         }
 
-        await showAlert("Venta completada correctamente");
-        await loadCotizaciones();
+        const quote = quotePayload.data;
+
+        refs.quoteId.value = id;
+        refs.prospectId.value = quote.id_prospect;
+        refs.initialAmount.value = "0";
+        refs.paymentReference.value = "";
+        refs.notes.value = "";
+
+        const clientResponse = await apiFetch(`/api/clients/${quote.id_prospect}`);
+        const clientPayload = await clientResponse.json().catch(() => ({}));
+        const client = clientPayload?.data || {};
+
+        refs.rfc.value = client.rfc || "";
+        refs.fiscalName.value = client.fiscal_name || "";
+        refs.fiscalRegime.value = client.fiscal_regime || "";
+        refs.billingEmail.value = client.billing_email || quote.email || "";
+        refs.address.value = client.address || "";
+        refs.city.value = client.city || "";
+        refs.state.value = client.state || "";
+        refs.postalCode.value = client.postal_code || "";
+        refs.fiscalDoc.value = "";
+
+        refs.modal.show();
     }
 
     async function deleteCotizacionPermanent(id) {
@@ -512,8 +768,40 @@
         DESCARGAR PDF
     ============================ */
 
-    function downloadPDF(id) {
-        window.open(`/api/cotizaciones/${id}/pdf`, "_blank");
+    async function downloadPDF(id) {
+        const previewWindow = window.open("", "_blank");
+
+        try {
+            const response = await apiFetch(`/api/cotizaciones/${id}/pdf`, {
+                method: "GET"
+            });
+
+            if (!response) {
+                return;
+            }
+
+            if (!response.ok) {
+                const payload = await response.json().catch(() => ({}));
+                throw new Error(payload.message || "No se pudo generar el PDF");
+            }
+
+            const pdfBlob = await response.blob();
+            const blobUrl = URL.createObjectURL(pdfBlob);
+
+            if (previewWindow) {
+                previewWindow.location.href = blobUrl;
+            } else {
+                window.open(blobUrl, "_blank");
+            }
+
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 60 * 1000);
+        } catch (error) {
+            if (previewWindow) {
+                previewWindow.close();
+            }
+
+            await showAlert(error.message || "No se pudo abrir el PDF");
+        }
     }
 
     /* ============================

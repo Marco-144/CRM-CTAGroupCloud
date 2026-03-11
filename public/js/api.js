@@ -1,11 +1,15 @@
 async function apiFetch(url, options = {}) {
 
     const token = sessionStorage.getItem("authToken");
+    const isFormData = options.body instanceof FormData;
 
     options.headers = {
-        "Content-Type": "application/json",
         ...(options.headers || {})
     };
+
+    if (!isFormData && !options.headers["Content-Type"]) {
+        options.headers["Content-Type"] = "application/json";
+    }
 
     if (token) {
         options.headers["Authorization"] = `Bearer ${token}`;
