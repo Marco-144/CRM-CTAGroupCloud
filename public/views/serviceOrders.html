@@ -39,6 +39,7 @@
                     <th>Folio</th>
                     <th>Cliente</th>
                     <th>Ticket</th>
+                    <th>Asignado a</th>
                     <th>Tipo de servicio</th>
                     <th>Prioridad</th>
                     <th>Estatus</th>
@@ -78,6 +79,13 @@
                             </div>
 
                             <div class="col-md-6">
+                                <label class="form-label">Asignado a</label>
+                                <select class="form-select" id="soAssignedUser">
+                                    <option value="">Sin asignar</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
                                 <label class="form-label">Prioridad</label>
                                 <select class="form-select" id="soPriority" required>
                                     <option value="bajo">Bajo</option>
@@ -111,6 +119,14 @@
                                 <label class="form-label">Descripción</label>
                                 <textarea class="form-control" id="soDescription" rows="3"></textarea>
                             </div>
+
+                            <div class="col-12">
+                                <label class="form-label">Adjuntos iniciales</label>
+                                <input type="file" class="form-control" id="soAttachment"
+                                    accept="image/*,application/pdf" multiple>
+                                <small class="text-muted">Opcional: uno o varios archivos (imagenes o PDF, max 8MB por
+                                    archivo)</small>
+                            </div>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -124,13 +140,46 @@
     </div>
 
     <div class="modal fade" id="viewSOModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
             <div class="modal-content rounded-4">
                 <div class="modal-header">
-                    <h5 class="modal-title fw-semibold">Detalle de Orden de Servicio</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <h5 class="modal-title fw-semibold" id="serviceOrderConversationTitle">Detalle de Orden de Servicio
+                    </h5>
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-primary d-none"
+                            id="serviceOrderOpenTicketBtn">
+                            <i class="bi bi-chat-left-text"></i> Abrir ticket relacionado
+                        </button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
                 </div>
-                <div class="modal-body" id="viewSOBody"></div>
+                <div class="modal-body service-order-conversation-layout">
+                    <div class="service-order-conversation-main">
+                        <div class="service-order-meta mb-3" id="serviceOrderConversationMeta"></div>
+                        <h6 class="fw-semibold mb-2">Chat de la orden</h6>
+                        <div class="service-order-response-list" id="serviceOrderResponsesList"></div>
+                        <form id="serviceOrderResponseForm" class="service-order-response-form mt-3">
+                            <input type="hidden" id="serviceOrderConversationId">
+                            <label class="form-label">Responder</label>
+                            <textarea class="form-control" id="serviceOrderResponseMessage" rows="3"
+                                placeholder="Escribe tu mensaje..."></textarea>
+                            <div class="mt-2">
+                                <input type="file" class="form-control" id="serviceOrderResponseAttachment"
+                                    accept="image/*,application/pdf" multiple>
+                                <small class="text-muted">Opcional: una o varias imagenes/PDF (max 8MB por
+                                    archivo)</small>
+                            </div>
+                            <div class="d-flex justify-content-end mt-2">
+                                <button type="submit" class="btn btn-primary">Enviar respuesta</button>
+                            </div>
+                        </form>
+                    </div>
+                    <aside class="service-order-history-panel d-flex flex-column">
+                        <h6 class="fw-semibold mb-3">Historial de cambios</h6>
+                        <div id="serviceOrderHistoryList" class="service-order-history-list flex-grow-1 overflow-y-auto"
+                            style="min-height: 0;"></div>
+                    </aside>
+                </div>
             </div>
         </div>
     </div>

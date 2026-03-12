@@ -90,10 +90,67 @@
 		return `${date.toLocaleDateString("es-MX")} ${date.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}`;
 	}
 
+	function buildAttachmentUrl(rawPath) {
+		const text = String(rawPath || "").trim();
+		if (!text) return "";
+
+		if (/^https?:\/\//i.test(text)) {
+			return text;
+		}
+
+		let normalized = text.replace(/\\/g, "/");
+
+		normalized = normalized.replace(/^\/+/, "");
+
+		if (!normalized.startsWith("server/uploads/")) {
+			normalized = `server/uploads/${normalized.replace(/^uploads\//, "")}`;
+		}
+
+		return `/${encodeURI(normalized)}`;
+	}
+
+	function normalizeAttachmentList(rawAttachments, fallbackAttachment = null) {
+		const unique = new Set();
+
+		function pushValue(value) {
+			if (value === null || value === undefined) return;
+
+			if (Array.isArray(value)) {
+				value.forEach(pushValue);
+				return;
+			}
+
+			const text = String(value).trim();
+			if (!text) return;
+
+			if (text.startsWith("[") && text.endsWith("]")) {
+				try {
+					const parsed = JSON.parse(text);
+					if (Array.isArray(parsed)) {
+						parsed.forEach(pushValue);
+						return;
+					}
+				} catch {
+					// Ignore parse errors and preserve raw string.
+				}
+			}
+
+			unique.add(text);
+		}
+
+		pushValue(rawAttachments);
+		pushValue(fallbackAttachment);
+
+		return Array.from(unique);
+	}
+
 	function getAttachmentMarkup(attachmentPath) {
 		if (!attachmentPath) return "";
 
 		const safePath = String(attachmentPath || "");
+		const attachmentUrl = buildAttachmentUrl(safePath);
+		if (!attachmentUrl) return "";
+
 		const normalized = safePath.toLowerCase();
 		const imageExt = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg"];
 		const isImage = imageExt.some((ext) => normalized.endsWith(ext));
@@ -102,16 +159,25 @@
 		if (isImage) {
 			return `
 				<div class="mt-2">
-					<img src="/${safePath}" alt="Adjunto" class="img-fluid rounded border" style="max-height: 260px; object-fit: contain;">
+					<a href="${attachmentUrl}" target="_blank" rel="noopener">
+						<img src="${attachmentUrl}" alt="Adjunto" class="img-fluid rounded border" style="max-height: 260px; object-fit: contain;">
+					</a>
 				</div>
 			`;
 		}
 
 		if (isPdf) {
-			return `<div class="mt-2"><a href="/${safePath}" target="_blank" rel="noopener">Ver PDF adjunto</a></div>`;
+			return `<div class="mt-2"><a href="${attachmentUrl}" target="_blank" rel="noopener">Ver PDF adjunto</a></div>`;
 		}
 
-		return `<div class="mt-2"><a href="/${safePath}">Ver adjunto</a></div>`;
+		return `<div class="mt-2"><a href="${attachmentUrl}" target="_blank" rel="noopener">Ver adjunto</a></div>`;
+	}
+
+	function getAttachmentsMarkup(rawAttachments, fallbackAttachment = null) {
+		const attachments = normalizeAttachmentList(rawAttachments, fallbackAttachment);
+		if (!attachments.length) return "";
+
+		return attachments.map((attachmentPath) => getAttachmentMarkup(attachmentPath)).join("");
 	}
 
 	function historyFieldLabel(fieldName) {
@@ -214,7 +280,7 @@
 
 		responsesList.innerHTML = items.map((item) => {
 			const roleDept = `${item.role || "Sin rol"} / ${item.department || "Sin departamento"}`;
-			const attachment = getAttachmentMarkup(item.attachment);
+			const attachment = getAttachmentsMarkup(item.attachments, item.attachment);
 			return `
 				<div class="ticket-response-item">
 					<div class="ticket-response-head">
@@ -303,8 +369,8 @@
 		const id = Number(conversationTicketId.value);
 		const message = responseMessage.value.trim();
 
-		if (!id || !message) {
-			await showAlert("El mensaje de respuesta es obligatorio");
+		if (!id || (!message && !responseAttachment?.files?.length)) {
+			await showAlert("Debes escribir un mensaje o seleccionar al menos un adjunto");
 			return;
 		}
 
@@ -312,8 +378,8 @@
 		formData.append("message", message);
 		formData.append("id_user", String(getLoggedUserId()));
 
-		if (responseAttachment?.files?.[0]) {
-			formData.append("attachment", responseAttachment.files[0]);
+		for (const file of Array.from(responseAttachment?.files || [])) {
+			formData.append("attachments", file);
 		}
 
 		const response = await apiFetch(`/api/tickets/${id}/responses`, {
@@ -479,8 +545,8 @@
 				formData.append(key, String(value));
 			});
 
-			if (ticketAttachment?.files?.[0]) {
-				formData.append("attachment", ticketAttachment.files[0]);
+			for (const file of Array.from(ticketAttachment?.files || [])) {
+				formData.append("attachments", file);
 			}
 
 			response = await apiFetch(endpoint, {

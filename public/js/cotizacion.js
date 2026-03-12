@@ -490,17 +490,19 @@
     ============================ */
     function updateKpis(data = filteredData) {
 
-        const total = data.reduce(
+        const activeCotizaciones = data.filter(c => c.status === "Activo");
+
+        const total = activeCotizaciones.reduce(
             (acc, item) => acc + Number(item.total || 0),
             0
         );
 
-        const cantidad = data.reduce(
+        const cantidad = activeCotizaciones.reduce(
             (acc, item) => acc + Number(item.total_cantidad || 0),
             0
         );
 
-        totalCotizaciones.textContent = data.length;
+        totalCotizaciones.textContent = activeCotizaciones.length;
         sumTotalCotizaciones.textContent = formatMoney(total);
         sumCantidadCotizaciones.textContent = cantidad;
     }

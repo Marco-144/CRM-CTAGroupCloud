@@ -1,4 +1,73 @@
 const db = require("../config/db");
+const {
+    buildUploadedPaths,
+    mergeStoredAttachments,
+} = require("../utils/attachments");
+
+async function loadTicketResponseAttachments(connection, responseIds) {
+    if (!Array.isArray(responseIds) || !responseIds.length) {
+        return new Map();
+    }
+
+    const [rows] = await connection.query(
+        `SELECT
+            id_ticket_response,
+            file_path,
+            original_name,
+            mime_type,
+            created_at
+         FROM ticket_response_attachments
+         WHERE id_ticket_response IN (?)
+         ORDER BY id_ticket_response_attachment ASC`,
+        [responseIds]
+    );
+
+    const grouped = new Map();
+
+    for (const row of rows) {
+        const key = Number(row.id_ticket_response);
+        const current = grouped.get(key) || [];
+        current.push({
+            file_path: row.file_path,
+            original_name: row.original_name,
+            mime_type: row.mime_type,
+            created_at: row.created_at,
+        });
+        grouped.set(key, current);
+    }
+
+    return grouped;
+}
+
+async function insertTicketResponseAttachments(connection, responseId, files, uploadedFiles) {
+    const attachments = mergeStoredAttachments(files);
+    if (!attachments.length) {
+        return;
+    }
+
+    const uploadsByPath = new Map(
+        (Array.isArray(uploadedFiles) ? uploadedFiles : []).map((file) => [
+            `server/uploads/ticket_attachments/${file.filename}`,
+            file,
+        ])
+    );
+
+    for (const filePath of attachments) {
+        const fileInfo = uploadsByPath.get(filePath);
+
+        await connection.query(
+            `INSERT INTO ticket_response_attachments
+                (id_ticket_response, file_path, original_name, mime_type)
+             VALUES (?, ?, ?, ?)`,
+            [
+                responseId,
+                filePath,
+                fileInfo?.originalname ? String(fileInfo.originalname).slice(0, 255) : null,
+                fileInfo?.mimetype ? String(fileInfo.mimetype).slice(0, 150) : null,
+            ]
+        );
+    }
+}
 
 exports.getTickets = async (req, res) => {
     try {
@@ -156,6 +225,11 @@ exports.getTicket = async (req, res) => {
             [id]
         );
 
+        const responseAttachments = await loadTicketResponseAttachments(
+            db,
+            responses.map((response) => Number(response.id_ticket_responses))
+        );
+
         const [history] = await db.query(
             `SELECT
                 th.id_ticket_history,
@@ -198,7 +272,13 @@ exports.getTicket = async (req, res) => {
             success: true,
             data: {
                 ...rows[0],
-                responses,
+                responses: responses.map((response) => ({
+                    ...response,
+                    attachments: mergeStoredAttachments(
+                        response.attachment,
+                        (responseAttachments.get(Number(response.id_ticket_responses)) || []).map((item) => item.file_path)
+                    ),
+                })),
                 history,
                 service_orders: serviceOrders,
             },
@@ -217,14 +297,19 @@ exports.createTicketResponse = async (req, res) => {
 
         const ticketId = Number(req.params.id);
         const message = String(req.body?.message || "").trim();
-        const attachment = req.file
-            ? `server/uploads/ticket_attachments/${req.file.filename}`
-            : (req.body?.attachment ? String(req.body.attachment).trim() : null);
+        const uploadedFiles = Array.isArray(req.files)
+            ? req.files
+            : (req.files && typeof req.files === "object" ? Object.values(req.files).flat() : []);
+        const attachments = mergeStoredAttachments(
+            buildUploadedPaths(req, "ticket_attachments"),
+            req.body?.attachments,
+            req.body?.attachment
+        );
         const userId = Number(req.auth?.sub || req.body?.id_user || 1);
 
-        if (!ticketId || !message) {
+        if (!ticketId || (!message && !attachments.length)) {
             await connection.rollback();
-            return res.status(400).json({ success: false, message: "Ticket y mensaje son obligatorios" });
+            return res.status(400).json({ success: false, message: "El ticket y un mensaje o adjunto son obligatorios" });
         }
 
         const [ticketRows] = await connection.query(
@@ -240,12 +325,14 @@ exports.createTicketResponse = async (req, res) => {
             return res.status(404).json({ success: false, message: "Ticket no encontrado" });
         }
 
-        await connection.query(
+        const [result] = await connection.query(
             `INSERT INTO ticket_responses
                 (id_ticket, id_user, message, attachment)
              VALUES (?, ?, ?, ?)`,
-            [ticketId, userId, message, attachment || null]
+            [ticketId, userId, message || null, attachments[0] || null]
         );
+
+        await insertTicketResponseAttachments(connection, result.insertId, attachments, uploadedFiles);
 
         await connection.query(
             `INSERT INTO ticket_history
@@ -284,7 +371,14 @@ exports.createTicket = async (req, res) => {
             due_date = null,
         } = req.body;
 
-        const attachmentPath = req.file ? `server/uploads/ticket_attachments/${req.file.filename}` : null;
+        const uploadedFiles = Array.isArray(req.files)
+            ? req.files
+            : (req.files && typeof req.files === "object" ? Object.values(req.files).flat() : []);
+        const attachmentPaths = mergeStoredAttachments(
+            buildUploadedPaths(req, "ticket_attachments"),
+            req.body?.attachments,
+            req.body?.attachment
+        );
 
         if (!id_prospect || !subject || !id_department) {
             await connection.rollback();
@@ -346,18 +440,20 @@ exports.createTicket = async (req, res) => {
         );
 
         const initialMessage = String(description || "").trim();
-        if (initialMessage || attachmentPath) {
-            await connection.query(
+        if (initialMessage || attachmentPaths.length) {
+            const [responseResult] = await connection.query(
                 `INSERT INTO ticket_responses
                     (id_ticket, id_user, message, attachment)
                  VALUES (?, ?, ?, ?)`,
                 [
                     result.insertId,
                     Number(id_created_by || req.auth?.sub || 1),
-                    initialMessage || "Adjunto inicial del ticket",
-                    attachmentPath,
+                    initialMessage || "Adjuntos iniciales del ticket",
+                    attachmentPaths[0] || null,
                 ]
             );
+
+            await insertTicketResponseAttachments(connection, responseResult.insertId, attachmentPaths, uploadedFiles);
         }
 
         await connection.commit();
@@ -531,6 +627,13 @@ exports.deleteTicket = async (req, res) => {
         const id = Number(req.params.id);
         await connection.beginTransaction();
 
+        await connection.query(
+            `DELETE tra
+             FROM ticket_response_attachments tra
+             INNER JOIN ticket_responses tr ON tr.id_ticket_responses = tra.id_ticket_response
+             WHERE tr.id_ticket = ?`,
+            [id]
+        );
         await connection.query("DELETE FROM ticket_responses WHERE id_ticket = ?", [id]);
         await connection.query("DELETE FROM ticket_history WHERE id_ticket = ?", [id]);
 

@@ -2,6 +2,7 @@ const sidebar = document.getElementById('sidebar');
 const toggle = document.getElementById('toggleSidebar');
 const commercialCollapse = document.getElementById('commercialSub');
 const accountCollapse = document.getElementById('accountingSub');
+const projectsCollapse = document.getElementById('projectsSub');
 const logoutBtn = document.getElementById('logoutBtn');
 let latestViewRequestId = 0;
 let appDialogRefs = null;
@@ -164,9 +165,11 @@ toggle.addEventListener('click', function () {
 
             const collapsebs = bootstrap.Collapse.getInstance(commercialCollapse);
             const collapsebs2 = bootstrap.Collapse.getInstance(accountCollapse);
-            if (collapsebs || collapsebs2) {
+            const collapsebs3 = bootstrap.Collapse.getInstance(projectsCollapse);
+            if (collapsebs || collapsebs2 || collapsebs3) {
                 collapsebs.hide();
                 collapsebs2.hide();
+                collapsebs3.hide();
             }
 
         } else {
@@ -205,13 +208,48 @@ function addCollapseIconsToNavItems() {
     });
 }
 
+document.addEventListener("click", function (event) {
+
+    const navLink = event.target.closest('.nav-link[data-bs-toggle="collapse"]');
+    if (!navLink) return;
+
+    const sidebarCollapsed = sidebar.classList.contains("collapsed");
+
+    if (sidebarCollapsed) {
+
+        const logoImage = document.getElementById('logoImage');
+
+        logoImage.style.opacity = 0;
+
+        setTimeout(() => {
+
+            sidebar.classList.remove("collapsed");
+
+            logoImage.src = 'assets/LOGO HORIZONTAL-02.png';
+            logoImage.style.opacity = 1;
+
+            const targetSelector = navLink.getAttribute("data-bs-target");
+            const targetCollapse = document.querySelector(targetSelector);
+
+            if (targetCollapse) {
+                const collapseInstance = new bootstrap.Collapse(targetCollapse, {
+                    toggle: true
+                });
+            }
+
+        }, 300);
+
+    }
+
+});
+
 // Cargar las diferentes secciones del dashboard
 document.addEventListener('DOMContentLoaded', async function () {
     const isSessionValid = await validateSession();
     if (!isSessionValid) return;
 
     addCollapseIconsToNavItems();
-    loadView('views/dashboard.html');
+    loadView('views/dashboard.html', 'css/dashboard.css', 'js/dashboard.js');
 
     logoutBtn?.addEventListener('click', handleLogoutClick);
 });
