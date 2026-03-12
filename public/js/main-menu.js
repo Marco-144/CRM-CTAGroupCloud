@@ -208,13 +208,48 @@ function addCollapseIconsToNavItems() {
     });
 }
 
+document.addEventListener("click", function (event) {
+
+    const navLink = event.target.closest('.nav-link[data-bs-toggle="collapse"]');
+    if (!navLink) return;
+
+    const sidebarCollapsed = sidebar.classList.contains("collapsed");
+
+    if (sidebarCollapsed) {
+
+        const logoImage = document.getElementById('logoImage');
+
+        logoImage.style.opacity = 0;
+
+        setTimeout(() => {
+
+            sidebar.classList.remove("collapsed");
+
+            logoImage.src = 'assets/LOGO HORIZONTAL-02.png';
+            logoImage.style.opacity = 1;
+
+            const targetSelector = navLink.getAttribute("data-bs-target");
+            const targetCollapse = document.querySelector(targetSelector);
+
+            if (targetCollapse) {
+                const collapseInstance = new bootstrap.Collapse(targetCollapse, {
+                    toggle: true
+                });
+            }
+
+        }, 300);
+
+    }
+
+});
+
 // Cargar las diferentes secciones del dashboard
 document.addEventListener('DOMContentLoaded', async function () {
     const isSessionValid = await validateSession();
     if (!isSessionValid) return;
 
     addCollapseIconsToNavItems();
-    loadView('views/dashboard.html');
+    loadView('views/dashboard.html', 'css/dashboard.css', 'js/dashboard.js');
 
     logoutBtn?.addEventListener('click', handleLogoutClick);
 });

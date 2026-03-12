@@ -27,6 +27,27 @@
             .replace(/'/g, "&#39;");
     }
 
+
+    /* ============================
+    KPIs
+    ============================ */
+    function updateKpis(data = salesCache) {
+
+        const total = data.reduce(
+            (acc, item) => acc + Number(item.total || 0),
+            0
+        );
+
+        const pendiente = data.reduce(
+            (acc, item) => acc + Number(item.pending_amount || 0),
+            0
+        );
+
+        totalVentas.textContent = data.length;
+        sumTotalVentas.textContent = formatMoney(total);
+        sumPendienteVentas.textContent = formatMoney(pendiente);
+    }
+
     function formatDate(value) {
         if (!value) return "-";
         const d = new Date(value);
@@ -93,6 +114,7 @@
         });
 
         renderTable(filtered);
+        updateKpis(filtered);
     }
 
     async function loadSales() {
@@ -105,6 +127,7 @@
 
         salesCache = payload.data || [];
         applySearch();
+        updateKpis();  
     }
 
     function renderPaymentsTable(payments) {
