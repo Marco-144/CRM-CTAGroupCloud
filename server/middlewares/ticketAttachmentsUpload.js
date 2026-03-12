@@ -2,21 +2,11 @@ const fs = require("fs");
 const path = require("path");
 const multer = require("multer");
 
-const uploadDir = path.join(__dirname, "..", "uploads", "ticket_attachments");
-
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
+function ensureDir(dirPath) {
+    if (!fs.existsSync(dirPath)) {
+        fs.mkdirSync(dirPath, { recursive: true });
+    }
 }
-
-const storage = multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, uploadDir),
-    filename: (req, file, cb) => {
-        const userId = Number(req.auth?.sub || 0) || Date.now();
-        const stamp = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-        const ext = path.extname(file.originalname || "").toLowerCase() || ".bin";
-        cb(null, `ticket_${userId}_${stamp}${ext}`);
-    },
-});
 
 const allowedMime = new Set([
     "image/jpeg",
@@ -35,12 +25,39 @@ function fileFilter(_req, file, cb) {
     cb(null, true);
 }
 
-const uploadTicketAttachment = multer({
-    storage,
-    fileFilter,
-    limits: { fileSize: 8 * 1024 * 1024 },
+function createAttachmentUploader({ folderName, prefix }) {
+    const uploadDir = path.join(__dirname, "..", "uploads", folderName);
+    ensureDir(uploadDir);
+
+    const storage = multer.diskStorage({
+        destination: (_req, _file, cb) => cb(null, uploadDir),
+        filename: (req, file, cb) => {
+            const userId = Number(req.auth?.sub || 0) || Date.now();
+            const stamp = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+            const ext = path.extname(file.originalname || "").toLowerCase() || ".bin";
+            cb(null, `${prefix}_${userId}_${stamp}${ext}`);
+        },
+    });
+
+    return multer({
+        storage,
+        fileFilter,
+        limits: { fileSize: 8 * 1024 * 1024 },
+    });
+}
+
+const uploadTicketAttachment = createAttachmentUploader({
+    folderName: "ticket_attachments",
+    prefix: "ticket",
+});
+
+const uploadServiceOrderAttachment = createAttachmentUploader({
+    folderName: "service_order_attachments",
+    prefix: "service_order",
 });
 
 module.exports = {
+    createAttachmentUploader,
     uploadTicketAttachment,
+    uploadServiceOrderAttachment,
 };
