@@ -2,6 +2,7 @@ const sidebar = document.getElementById('sidebar');
 const toggle = document.getElementById('toggleSidebar');
 const commercialCollapse = document.getElementById('commercialSub');
 const accountCollapse = document.getElementById('accountingSub');
+const projectsCollapse = document.getElementById('projectsSub');
 const logoutBtn = document.getElementById('logoutBtn');
 let latestViewRequestId = 0;
 let appDialogRefs = null;
@@ -164,9 +165,11 @@ toggle.addEventListener('click', function () {
 
             const collapsebs = bootstrap.Collapse.getInstance(commercialCollapse);
             const collapsebs2 = bootstrap.Collapse.getInstance(accountCollapse);
-            if (collapsebs || collapsebs2) {
+            const collapsebs3 = bootstrap.Collapse.getInstance(projectsCollapse);
+            if (collapsebs || collapsebs2 || collapsebs3) {
                 collapsebs.hide();
                 collapsebs2.hide();
+                collapsebs3.hide();
             }
 
         } else {
