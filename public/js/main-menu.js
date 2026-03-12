@@ -6,6 +6,13 @@ const projectsCollapse = document.getElementById('projectsSub');
 const logoutBtn = document.getElementById('logoutBtn');
 let latestViewRequestId = 0;
 let appDialogRefs = null;
+const staticVersion = String(Date.now());
+
+function withVersion(url) {
+    if (!url) return url;
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}v=${encodeURIComponent(staticVersion)}`;
+}
 
 function clearSessionAndRedirect() {
     sessionStorage.removeItem('authToken');
@@ -263,7 +270,7 @@ document.addEventListener('click', function (event) {
 function loadView(view, cssFile = null, jsFile = null) {
     const requestId = ++latestViewRequestId;
 
-    fetch(view)
+    fetch(withVersion(view))
         .then(response => {
             if (!response.ok) {
                 throw new Error('No se pudo cargar la vista');
@@ -290,7 +297,7 @@ function loadView(view, cssFile = null, jsFile = null) {
             if (cssFile) {
                 const link = document.createElement('link');
                 link.rel = 'stylesheet';
-                link.href = cssFile;
+                link.href = withVersion(cssFile);
                 link.id = 'dynamic-css';
                 document.head.appendChild(link);
             }
@@ -298,7 +305,7 @@ function loadView(view, cssFile = null, jsFile = null) {
             // Cargar nuevo JS
             if (jsFile) {
                 const script = document.createElement('script');
-                script.src = jsFile;
+                script.src = withVersion(jsFile);
                 script.id = 'dynamic-js';
                 document.body.appendChild(script);
             }
