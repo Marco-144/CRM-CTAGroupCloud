@@ -17,6 +17,58 @@
 
     let salesCache = [];
     let currentSaleId = null;
+    const pageSize = 7;
+    let currentPage = 1;
+    const paginationContainer = ensurePaginationContainer(table, "salesPagination");
+
+    function ensurePaginationContainer(tableElement, containerId) {
+        let container = document.getElementById(containerId);
+
+        if (!container && tableElement) {
+            container = document.createElement("div");
+            container.id = containerId;
+            container.className = "d-flex justify-content-end align-items-center gap-2 mt-3";
+
+            const tableWrapper = tableElement.closest(".table-responsive") || tableElement.parentElement;
+            tableWrapper?.insertAdjacentElement("afterend", container);
+        }
+
+        return container;
+    }
+
+    function renderPagination(totalItems, rowsToRender) {
+        if (!paginationContainer) return;
+
+        const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+        if (totalItems <= pageSize) {
+            paginationContainer.innerHTML = "";
+            return;
+        }
+
+        const prevDisabled = currentPage <= 1 ? "disabled" : "";
+        const nextDisabled = currentPage >= totalPages ? "disabled" : "";
+
+        paginationContainer.innerHTML = `
+            <button type="button" class="btn btn-sm btn-outline-secondary btn-anterior" ${prevDisabled} data-page-action="prev">Anterior</button>
+            <span class="small text-muted">Página ${currentPage} de ${totalPages}</span>
+            <button type="button" class="btn btn-sm btn-outline-secondary btn-siguiente" ${nextDisabled} data-page-action="next">Siguiente</button>
+        `;
+
+        paginationContainer.querySelector('[data-page-action="prev"]')?.addEventListener("click", () => {
+            if (currentPage > 1) {
+                currentPage -= 1;
+                renderTable(rowsToRender);
+            }
+        });
+
+        paginationContainer.querySelector('[data-page-action="next"]')?.addEventListener("click", () => {
+            if (currentPage < totalPages) {
+                currentPage += 1;
+                renderTable(rowsToRender);
+            }
+        });
+    }
 
     function escapeHTML(value) {
         return String(value ?? "")
@@ -70,10 +122,19 @@
                 <td colspan="8" class="text-center text-muted py-4">No hay ventas registradas</td>
 			</tr>
 		`;
+            renderPagination(0, rows);
             return;
         }
 
-        table.innerHTML = rows.map((sale) => `
+        const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+        if (currentPage > totalPages) {
+            currentPage = totalPages;
+        }
+
+        const start = (currentPage - 1) * pageSize;
+        const paginatedRows = rows.slice(start, start + pageSize);
+
+        table.innerHTML = paginatedRows.map((sale) => `
 		<tr>
 			<td>${escapeHTML(sale.sale_folio || "-")}</td>
 			<td>${escapeHTML(sale.company || "-")}</td>
@@ -98,9 +159,12 @@
 			</td>
 		</tr>
 	`).join("");
+
+        renderPagination(rows.length, rows);
     }
 
     function applySearch() {
+        currentPage = 1;
         const q = (searchInput.value || "").trim().toLowerCase();
         if (!q) {
             renderTable(salesCache);
@@ -126,8 +190,9 @@
         }
 
         salesCache = payload.data || [];
+        currentPage = 1;
         applySearch();
-        updateKpis();  
+        updateKpis();
     }
 
     function renderPaymentsTable(payments) {

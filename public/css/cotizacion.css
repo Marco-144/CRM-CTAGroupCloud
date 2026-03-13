@@ -93,6 +93,14 @@
 	justify-content: center;
 }
 
+.cotizacion-view .btn-anterior {
+	width: 90px;
+}
+
+.cotizacion-view .btn-siguiente {
+	width: 90px;
+}
+
 .cotizacion-view .btn-outline-secondary {
 	border-color: #e5e7eb;
 	color: #6b7280;

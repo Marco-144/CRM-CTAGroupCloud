@@ -51,6 +51,11 @@
 	color: #6c757d;
 }
 
+.ticket-suport-view .btn-anterior,
+.ticket-suport-view .btn-siguiente {
+	width: 90px;
+}
+
 @media (max-width: 991px) {
 	.ticket-conversation-layout {
 		grid-template-columns: 1fr;

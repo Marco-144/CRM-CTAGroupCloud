@@ -41,6 +41,58 @@
 	let clientsCache = [];
 	let departmentsCache = [];
 	let usersCache = [];
+	const pageSize = 9;
+	let currentPage = 1;
+	const paginationContainer = ensurePaginationContainer(table, "ticketsPagination");
+
+	function ensurePaginationContainer(tableElement, containerId) {
+		let container = document.getElementById(containerId);
+
+		if (!container && tableElement) {
+			container = document.createElement("div");
+			container.id = containerId;
+			container.className = "d-flex justify-content-end align-items-center gap-2 mt-3";
+
+			const tableWrapper = tableElement.closest(".table-responsive") || tableElement.parentElement;
+			tableWrapper?.insertAdjacentElement("afterend", container);
+		}
+
+		return container;
+	}
+
+	function renderPagination(totalItems, rowsToRender) {
+		if (!paginationContainer) return;
+
+		const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+		if (totalItems <= pageSize) {
+			paginationContainer.innerHTML = "";
+			return;
+		}
+
+		const prevDisabled = currentPage <= 1 ? "disabled" : "";
+		const nextDisabled = currentPage >= totalPages ? "disabled" : "";
+
+		paginationContainer.innerHTML = `
+			<button type="button" class="btn btn-sm btn-outline-secondary btn-anterior" ${prevDisabled} data-page-action="prev">Anterior</button>
+			<span class="small text-muted">Página ${currentPage} de ${totalPages}</span>
+			<button type="button" class="btn btn-sm btn-outline-secondary btn-siguiente" ${nextDisabled} data-page-action="next">Siguiente</button>
+		`;
+
+		paginationContainer.querySelector('[data-page-action="prev"]')?.addEventListener("click", () => {
+			if (currentPage > 1) {
+				currentPage -= 1;
+				renderTable(rowsToRender);
+			}
+		});
+
+		paginationContainer.querySelector('[data-page-action="next"]')?.addEventListener("click", () => {
+			if (currentPage < totalPages) {
+				currentPage += 1;
+				renderTable(rowsToRender);
+			}
+		});
+	}
 
 	function consumePendingConversationId() {
 		const raw = window.pendingTicketConversationId || sessionStorage.getItem("pendingTicketConversationId") || "";
@@ -246,10 +298,19 @@
 				<td colspan="9" class="text-center text-muted py-4">No se encontraron tickets</td>
 			</tr>
 		`;
+			renderPagination(0, data || []);
 			return;
 		}
 
-		table.innerHTML = data.map((ticket) => `
+		const totalPages = Math.max(1, Math.ceil(data.length / pageSize));
+		if (currentPage > totalPages) {
+			currentPage = totalPages;
+		}
+
+		const start = (currentPage - 1) * pageSize;
+		const paginatedData = data.slice(start, start + pageSize);
+
+		table.innerHTML = paginatedData.map((ticket) => `
 		<tr>
 			<td>
 				<button class="btn btn-link p-0 text-decoration-none edit-ticket" data-id="${ticket.id_ticket}">
@@ -270,6 +331,8 @@
 			</td>
 		</tr>
 	`).join("");
+
+		renderPagination(data.length, data);
 	}
 
 	function renderResponses(items) {
@@ -482,6 +545,7 @@
 		}
 
 		ticketsCache = payload.data || [];
+		currentPage = 1;
 		renderTable(ticketsCache);
 	}
 
