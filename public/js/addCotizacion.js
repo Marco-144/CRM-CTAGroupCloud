@@ -29,7 +29,7 @@
 
   async function cargarProspects() {
     try {
-      const response = await apiFetch('/api/prospects?status=Activo');
+      const response = await apiFetch('/api/prospects?status=Activo&include_clients=1');
       const result = await response.json();
 
       if (!result.success) return;
@@ -131,9 +131,31 @@
   // AGREGAR CONCEPTO
   // ===============================
 
-  addConceptoBtn.addEventListener("click", () => {
+  function attachConceptCardEvents(card) {
+    const deleteBtn = card.querySelector(".btnEliminar");
 
-    const index = conceptos.length;
+    if (deleteBtn) {
+      deleteBtn.addEventListener("click", () => {
+        card.remove();
+        actualizarTotal();
+      });
+    }
+
+    card.querySelectorAll("input, select").forEach(el => {
+      el.addEventListener("input", actualizarTotal);
+    });
+
+    const textarea = card.querySelector(".descripcion");
+
+    if (textarea) {
+      textarea.addEventListener("input", function () {
+        this.style.height = "auto";
+        this.style.height = this.scrollHeight + "px";
+      });
+    }
+  }
+
+  addConceptoBtn.addEventListener("click", () => {
 
     const card = document.createElement("div");
     card.className = "card p-3 mb-3";
@@ -166,20 +188,7 @@
     </div>
   `;
 
-    card.querySelector(".btnEliminar").addEventListener("click", () => {
-      card.remove();
-      actualizarTotal();
-    });
-
-    card.querySelectorAll("input, select").forEach(el => {
-      el.addEventListener("input", actualizarTotal);
-    });
-
-    const textarea = card.querySelector(".descripcion");
-    textarea.addEventListener("input", function () {
-      this.style.height = "auto";
-      this.style.height = this.scrollHeight + "px";
-    });
+    attachConceptCardEvents(card);
 
     conceptosContainer.appendChild(card);
 
@@ -255,14 +264,21 @@
       const periodicidad = card.querySelector(".periodicidad").value;
       const cantidad = Number(card.querySelector(".cantidad").value);
       const costo = Number(card.querySelector(".costo").value);
+      const idDetalle = Number(card.dataset.idDetalle || 0);
 
       if (descripcion && cantidad > 0 && costo > 0) {
-        conceptosValidos.push({
+        const conceptoPayload = {
           descripcion,
           periodicidad,
           cantidad,
           costo_unitario: costo
-        });
+        };
+
+        if (idDetalle) {
+          conceptoPayload.id_detalle_cotizacion = idDetalle;
+        }
+
+        conceptosValidos.push(conceptoPayload);
       }
     });
 
@@ -329,6 +345,7 @@
       const cot = data.data;
 
       cotizacionProspecto.value = cot.id_prospect;
+      prospectoSearch.value = cot.prospecto || "";
       cotizacionMoneda.value = cot.moneda;
       cotizacionTipoCambio.value = cot.tipo_cambio;
 
@@ -340,6 +357,7 @@
 
         const card = document.createElement("div");
         card.className = "card p-3 mb-3";
+        card.dataset.idDetalle = c.id_detalle_cotizacion;
 
         card.innerHTML = `
         <div class="row g-2">
@@ -361,8 +379,15 @@
             <label class="form-label">Costo Unitario</label>
             <input type="number" class="form-control costo" value="${c.costo_unitario}">
           </div>
+          <div class="col-md-2 d-flex align-items-end">
+            <button type="button" class="btn btn-danger btnEliminar w-100">
+              Eliminar
+            </button>
+          </div>
         </div>
       `;
+
+        attachConceptCardEvents(card);
 
         conceptosContainer.appendChild(card);
       });
