@@ -17,6 +17,7 @@ exports.login = async (req, res) => {
             `SELECT
                  id,
                  username,
+                 name,
                  password_hash,
                  id_department,
                  id_role,
@@ -42,6 +43,7 @@ exports.login = async (req, res) => {
             {
                 sub: dbUser.id,
                 username: dbUser.username,
+                name: dbUser.name,
                 id_department: dbUser.id_department,
                 id_role: dbUser.id_role,
                 token_version: dbUser.token_version || 0,
@@ -56,6 +58,7 @@ exports.login = async (req, res) => {
             user: {
                 id: dbUser.id,
                 username: dbUser.username,
+                name: dbUser.name,
                 id_department: dbUser.id_department,
                 id_role: dbUser.id_role,
             },
@@ -74,6 +77,7 @@ exports.me = async (req, res) => {
             `SELECT
                  u.id,
                  u.username,
+                  u.name,
                  u.email,
                  u.id_department,
                  u.id_role,

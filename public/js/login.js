@@ -1,4 +1,4 @@
- // Configuración editable (después podrá venir desde API o BD)
+// Configuración editable (después podrá venir desde API o BD)
 const appConfig = {
     logo: "assets/CTA-02.png",
 
@@ -16,7 +16,7 @@ document.getElementById("companyLogo").src = appConfig.logo;
 document.documentElement.style.setProperty('--primary-color', appConfig.colors.primary);
 document.documentElement.style.setProperty('--secondary-color', appConfig.colors.primaryHover);
 document.documentElement.style.setProperty('--background-start', appConfig.colors.backgroundStart);
-document.documentElement.style.setProperty('--background-end', appConfig.colors.backgroundEnd); 
+document.documentElement.style.setProperty('--background-end', appConfig.colors.backgroundEnd);
 
 const loginForm = document.getElementById("loginForm");
 const userInput = document.getElementById("user");
@@ -50,7 +50,7 @@ loginForm.addEventListener("submit", async (event) => {
         }
 
         sessionStorage.setItem("authToken", result.token);
-        sessionStorage.setItem("loggedUser", result.user?.username || user);
+        sessionStorage.setItem("loggedUser", result.user?.name || result.user?.username || user);
         sessionStorage.setItem("loggedUserData", JSON.stringify(result.user || {}));
 
         window.location.href = "main-menu.html";

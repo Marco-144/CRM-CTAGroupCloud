@@ -7,6 +7,7 @@ exports.getUsers = async (req, res) => {
             `SELECT
          u.id,
          u.username,
+         u.name,
          u.email,
          u.id_department,
          u.id_role,
@@ -27,18 +28,25 @@ exports.getUsers = async (req, res) => {
 
 exports.createUser = async (req, res) => {
     try {
-        const { username, email, password, id_department, id_role } = req.body;
+        const { username, name, email, password, id_department, id_role } = req.body;
 
-        if (!username || !email || !password || !id_department || !id_role) {
+        if (!username || !name || !email || !password || !id_department || !id_role) {
             return res.status(400).json({ success: false, message: "Datos incompletos" });
         }
 
         const password_hash = await bcrypt.hash(password, 12);
 
         const [result] = await db.query(
-            `INSERT INTO users (username, email, password_hash, id_department, id_role)
-       VALUES (?, ?, ?, ?, ?)`,
-            [username.trim(), email.trim(), password_hash, Number(id_department), Number(id_role)]
+            `INSERT INTO users (username, name, email, password_hash, id_department, id_role)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+            [
+                username.trim(),
+                name.trim(),
+                email.trim(),
+                password_hash,
+                Number(id_department),
+                Number(id_role)
+            ]
         );
 
         res.status(201).json({ success: true, id: result.insertId });
@@ -51,19 +59,26 @@ exports.createUser = async (req, res) => {
 exports.updateUser = async (req, res) => {
     try {
         const { id } = req.params;
-        const { username, email, password, id_department, id_role } = req.body;
+        const { username, name, email, password, id_department, id_role } = req.body;
 
-        if (!username || !email || !id_department || !id_role) {
+        if (!username || !name || !email || !id_department || !id_role) {
             return res.status(400).json({ success: false, message: "Datos incompletos" });
         }
 
         const updates = [
             "username = ?",
+            "name = ?",
             "email = ?",
             "id_department = ?",
             "id_role = ?"
         ];
-        const params = [username.trim(), email.trim(), Number(id_department), Number(id_role)];
+        const params = [
+            username.trim(),
+            name.trim(),
+            email.trim(),
+            Number(id_department),
+            Number(id_role)
+        ];
 
         if (password) {
             const password_hash = await bcrypt.hash(password, 12);

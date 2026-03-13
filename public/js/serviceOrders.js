@@ -291,7 +291,7 @@
             return `
                 <div class="service-order-response-item">
                     <div class="service-order-response-head">
-                        <strong>${escapeHTML(item.username || "Usuario")}</strong>
+                        <strong>${escapeHTML(item.name || item.username || "Usuario")}</strong>
                         <span class="service-order-response-meta">${escapeHTML(formatDateTime(item.created_at))}</span>
                     </div>
                     <div class="service-order-response-meta mb-2">${escapeHTML(roleDept)}</div>
@@ -314,7 +314,7 @@
             return `
                 <div class="service-order-history-item">
                     <div class="service-order-history-head">
-                        <strong>${escapeHTML(item.username || "Sistema")}</strong>
+                        <strong>${escapeHTML(item.name || item.username || "Sistema")}</strong>
                         <span class="service-order-history-meta">${escapeHTML(formatDateTime(item.created_at))}</span>
                     </div>
                     <div class="service-order-history-meta mb-2">${escapeHTML(roleDept)}</div>
@@ -371,7 +371,7 @@
         soAssignedUser.innerHTML = `
         <option value="">Sin asignar</option>
         ${usersCache
-                .map((user) => `<option value="${user.id}">${escapeHTML(user.username)}</option>`)
+                .map((user) => `<option value="${user.id}">${escapeHTML(user.name || user.username || "Usuario")}</option>`)
                 .join("")}
         `;
     }

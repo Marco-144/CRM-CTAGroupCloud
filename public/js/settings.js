@@ -8,6 +8,7 @@
 	const showConfirm = window.showAppConfirm || ((message) => Promise.resolve(window.confirm(message)));
 
 	const userIdInput = document.getElementById('userId');
+	const userUsernameInput = document.getElementById('userUsername');
 	const userNameInput = document.getElementById('userName');
 	const userEmailInput = document.getElementById('userEmail');
 	const userDepartmentInput = document.getElementById('userDepartment');
@@ -35,6 +36,8 @@
 	function resetForm() {
 		userForm.reset();
 		userIdInput.value = '';
+		userUsernameInput.value = '';
+		userNameInput.value = '';
 		userDepartmentInput.value = '';
 		userRoleInput.value = '';
 		userPasswordInput.required = true;
@@ -52,21 +55,23 @@
 		if (!Array.isArray(users) || users.length === 0) {
 			usersTableBody.innerHTML = `
 			<tr>
-				<td colspan="5" class="text-center">No hay usuarios registrados.</td>
+				<td colspan="6" class="text-center">No hay usuarios registrados.</td>
 			</tr>
 		`;
 			return;
 		}
 
 		usersTableBody.innerHTML = users.map((item) => {
-			const safeUser = escapeHTML(item.username || '-');
+			const safeUsername = escapeHTML(item.username || '-');
+			const safeName = escapeHTML(item.name || '-');
 			const safeEmail = escapeHTML(item.email || '-');
 			const safeDepartment = escapeHTML(item.department || '-');
 			const safeRole = escapeHTML(item.role || '-');
 
 			return `
 			<tr>
-				<td>${safeUser}</td>
+				<td>${safeUsername}</td>
+				<td>${safeName}</td>
 				<td>${safeEmail}</td>
 				<td>${safeDepartment}</td>
 				<td>${safeRole}</td>
@@ -148,7 +153,8 @@
 		if (!selectedUser) return;
 
 		userIdInput.value = selectedUser.id;
-		userNameInput.value = selectedUser.username || '';
+		userUsernameInput.value = selectedUser.username || '';
+		userNameInput.value = selectedUser.name || '';
 		userEmailInput.value = selectedUser.email || '';
 		userDepartmentInput.value = String(selectedUser.id_department || '');
 		userRoleInput.value = String(selectedUser.id_role || '');
@@ -163,7 +169,8 @@
 
 		const id = userIdInput.value;
 		const payload = {
-			username: userNameInput.value.trim(),
+			username: userUsernameInput.value.trim(),
+			name: userNameInput.value.trim(),
 			email: userEmailInput.value.trim(),
 			id_department: Number(userDepartmentInput.value),
 			id_role: Number(userRoleInput.value),
@@ -246,7 +253,7 @@
 		Promise.all([fetchDepartmentsAndRoles(), fetchUsers()]).catch((error) => {
 			usersTableBody.innerHTML = `
 			<tr>
-				<td colspan="5" class="text-center text-danger">
+				<td colspan="6" class="text-center text-danger">
 					Error al cargar usuarios: ${escapeHTML(error.message)}
 				</td>
 			</tr>

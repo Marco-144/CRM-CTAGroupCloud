@@ -50,14 +50,14 @@ async function validateSession() {
         }
 
         const payload = await response.json().catch(() => ({}));
-        const username = payload?.user?.username;
+        const displayName = payload?.user?.name || payload?.user?.username;
 
-        if (!payload?.success || !username) {
+        if (!payload?.success || !displayName) {
             clearSessionAndRedirect();
             return false;
         }
 
-        sessionStorage.setItem('loggedUser', username);
+        sessionStorage.setItem('loggedUser', displayName);
         sessionStorage.setItem('loggedUserData', JSON.stringify(payload.user));
         return true;
     } catch (error) {
