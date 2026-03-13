@@ -446,8 +446,8 @@
                     </button>`}
             </td>
             <td class="text-center">${item.total_cantidad || 0}</td>
-            <td class="text-center">${formatMoney(item.subtotal)}</td>
-            <td class="fw-semibold text-center">${formatMoney(item.total)}</td>
+            <td class="text-center">${formatMoney(item.subtotal, item.moneda || "MXN")}</td>
+            <td class="fw-semibold text-center">${formatMoney(item.total, item.moneda || "MXN")}</td>
             <td class="text-end">${formatDate(item.updated_at)}</td>
             <td class="text-end">
 
