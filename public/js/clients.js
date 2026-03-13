@@ -24,6 +24,58 @@
     const showConfirm = window.showAppConfirm || ((message) => Promise.resolve(window.confirm(message)));
 
     let clientsCache = [];
+    const pageSize = 9;
+    let currentPage = 1;
+    const paginationContainer = ensurePaginationContainer(table, "clientsPagination");
+
+    function ensurePaginationContainer(tableElement, containerId) {
+        let container = document.getElementById(containerId);
+
+        if (!container && tableElement) {
+            container = document.createElement("div");
+            container.id = containerId;
+            container.className = "d-flex justify-content-end align-items-center gap-2 mt-3";
+
+            const tableWrapper = tableElement.closest(".table-responsive") || tableElement.parentElement;
+            tableWrapper?.insertAdjacentElement("afterend", container);
+        }
+
+        return container;
+    }
+
+    function renderPagination(totalItems, rowsToRender) {
+        if (!paginationContainer) return;
+
+        const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+        if (totalItems <= pageSize) {
+            paginationContainer.innerHTML = "";
+            return;
+        }
+
+        const prevDisabled = currentPage <= 1 ? "disabled" : "";
+        const nextDisabled = currentPage >= totalPages ? "disabled" : "";
+
+        paginationContainer.innerHTML = `
+            <button type="button" class="btn btn-sm btn-outline-secondary btn-anterior" ${prevDisabled} data-page-action="prev">Anterior</button>
+            <span class="small text-muted">Página ${currentPage} de ${totalPages}</span>
+            <button type="button" class="btn btn-sm btn-outline-secondary btn-siguiente" ${nextDisabled} data-page-action="next">Siguiente</button>
+        `;
+
+        paginationContainer.querySelector('[data-page-action="prev"]')?.addEventListener("click", () => {
+            if (currentPage > 1) {
+                currentPage -= 1;
+                renderTable(rowsToRender);
+            }
+        });
+
+        paginationContainer.querySelector('[data-page-action="next"]')?.addEventListener("click", () => {
+            if (currentPage < totalPages) {
+                currentPage += 1;
+                renderTable(rowsToRender);
+            }
+        });
+    }
 
     function escapeHTML(value) {
         return String(value ?? "")
@@ -41,10 +93,19 @@
 				<td colspan="6" class="text-center text-muted py-4">No hay clientes registrados</td>
 			</tr>
 		`;
+            renderPagination(0, rows);
             return;
         }
 
-        table.innerHTML = rows.map((item) => {
+        const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+        if (currentPage > totalPages) {
+            currentPage = totalPages;
+        }
+
+        const start = (currentPage - 1) * pageSize;
+        const paginatedRows = rows.slice(start, start + pageSize);
+
+        table.innerHTML = paginatedRows.map((item) => {
             const doc = item.tax_certificate_pdf
                 ? `<a class="doc-link" href="/${item.tax_certificate_pdf}" target="_blank" rel="noopener">Ver PDF</a>`
                 : "-";
@@ -70,9 +131,12 @@
 			</tr>
 		`;
         }).join("");
+
+        renderPagination(rows.length, rows);
     }
 
     function applySearch() {
+        currentPage = 1;
         const q = (searchInput.value || "").trim().toLowerCase();
         if (!q) {
             renderTable(clientsCache);
@@ -98,6 +162,7 @@
         }
 
         clientsCache = payload.data || [];
+        currentPage = 1;
         applySearch();
     }
 

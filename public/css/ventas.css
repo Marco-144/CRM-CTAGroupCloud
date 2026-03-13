@@ -11,3 +11,11 @@
 	align-items: center;
 	justify-content: center;
 }
+
+.ventas-view .btn-anterior {
+	width: 90px;
+}
+
+.ventas-view .btn-siguiente {
+	width: 90px;
+}

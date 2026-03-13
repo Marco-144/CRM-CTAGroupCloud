@@ -105,6 +105,14 @@
 	color: #212529;
 }
 
+.service-order-view .btn-anterior {
+	width: 90px;
+}
+
+.service-order-view .btn-siguiente {
+	width: 90px;
+}
+
 @media (max-width: 991px) {
 	.service-order-conversation-layout {
 		grid-template-columns: 1fr;

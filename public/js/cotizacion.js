@@ -20,6 +20,58 @@
     let filteredData = [];
     let currentViewId = null;
     let saleModalRefs = null;
+    const pageSize = 7;
+    let currentPage = 1;
+    const paginationContainer = ensurePaginationContainer(cotizacionesTable, "cotizacionesPagination");
+
+    function ensurePaginationContainer(tableElement, containerId) {
+        let container = document.getElementById(containerId);
+
+        if (!container && tableElement) {
+            container = document.createElement("div");
+            container.id = containerId;
+            container.className = "d-flex justify-content-end align-items-center gap-2 mt-3";
+
+            const tableWrapper = tableElement.closest(".table-responsive") || tableElement.parentElement;
+            tableWrapper?.insertAdjacentElement("afterend", container);
+        }
+
+        return container;
+    }
+
+    function renderPagination(totalItems) {
+        if (!paginationContainer) return;
+
+        const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+        if (totalItems <= pageSize) {
+            paginationContainer.innerHTML = "";
+            return;
+        }
+
+        const prevDisabled = currentPage <= 1 ? "disabled" : "";
+        const nextDisabled = currentPage >= totalPages ? "disabled" : "";
+
+        paginationContainer.innerHTML = `
+            <button type="button" class="btn btn-sm btn-outline-secondary btn-anterior" ${prevDisabled} data-page-action="prev">Anterior</button>
+            <span class="small text-muted">Página ${currentPage} de ${totalPages}</span>
+            <button type="button" class="btn btn-sm btn-outline-secondary btn-siguiente" ${nextDisabled} data-page-action="next">Siguiente</button>
+        `;
+
+        paginationContainer.querySelector('[data-page-action="prev"]')?.addEventListener("click", () => {
+            if (currentPage > 1) {
+                currentPage -= 1;
+                renderTable(filteredData);
+            }
+        });
+
+        paginationContainer.querySelector('[data-page-action="next"]')?.addEventListener("click", () => {
+            if (currentPage < totalPages) {
+                currentPage += 1;
+                renderTable(filteredData);
+            }
+        });
+    }
 
     function getSaleModalRefs() {
         if (saleModalRefs) return saleModalRefs;
@@ -270,6 +322,7 @@
                 break;
         }
 
+        currentPage = 1;
         renderTable(filteredData);
         updateKpis(filteredData);
     }
@@ -278,6 +331,7 @@
 
         if (tipo === "periodicidad_all") {
             filteredData = applyBaseFilters(cotizacionesCache);
+            currentPage = 1;
             renderTable(filteredData);
             updateKpis(filteredData);
             return;
@@ -310,6 +364,7 @@
         }
 
         filteredData = applyBaseFilters(filtradas);
+        currentPage = 1;
         renderTable(filteredData);
         updateKpis(filteredData);
     }
@@ -348,6 +403,7 @@
     }
 
     async function applyDateAndSearchFilters() {
+        currentPage = 1;
         const activeFilter = cotizacionFilter.value;
 
         if (activeFilter && activeFilter.includes("periodicidad") && activeFilter !== "periodicidad_all") {
@@ -374,6 +430,7 @@
     clearDateFilter.addEventListener("click", () => {
         cotizacionDateFilter.value = "";
         filteredData = applyBaseFilters(cotizacionesCache);
+        currentPage = 1;
         renderTable(filteredData);
         updateKpis(filteredData);
     });
@@ -393,6 +450,7 @@
 
         cotizacionesCache = data.data;
         filteredData = applyBaseFilters(cotizacionesCache);
+        currentPage = 1;
 
         renderTable(filteredData);
         updateKpis(filteredData);
@@ -415,10 +473,19 @@
                 </td>
             </tr>
         `;
+            renderPagination(0);
             return;
         }
 
-        cotizacionesTable.innerHTML = data.map(item => {
+        const totalPages = Math.max(1, Math.ceil(data.length / pageSize));
+        if (currentPage > totalPages) {
+            currentPage = totalPages;
+        }
+
+        const start = (currentPage - 1) * pageSize;
+        const paginatedData = data.slice(start, start + pageSize);
+
+        cotizacionesTable.innerHTML = paginatedData.map(item => {
             const folio = String(item.Folio ?? item.folio ?? 0).padStart(5, "0");
             const isInactive = item.status === "Inactivo";
             const isCompleted = item.status === "Completada";
@@ -483,6 +550,8 @@
         </tr>
     `;
         }).join("");
+
+        renderPagination(data.length);
     }
 
     /* ============================

@@ -18,3 +18,11 @@
 .clients-view .client-detail-section div {
   word-break: break-word;
 }
+
+.clients-view .btn-anterior {
+  width: 90px;
+}
+
+.clients-view .btn-siguiente {
+  width: 90px;
+}
