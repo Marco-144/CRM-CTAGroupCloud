@@ -1,23 +1,17 @@
 <form id="addCotizacionForm" class="addCotizacionForm" novalidate>
 
-	<h4 class="mb-4">Nueva Cotización</h4>
+  <h4 class="mb-4">Nueva Cotización</h4>
 
   <!-- PROSPECTO -->
   <div class="row g-3 mb-4">
     <div class="col-md-6">
-      <label class="form-label">Prospecto</label>
+      <label class="form-label">Prospecto / Cliente</label>
       <div class="position-relative">
-		<input 
-			type="text" 
-			class="form-control mb-2" 
-			id="cotizacionProspectoSearch" 
-			placeholder="Buscar empresa..."
-			autocomplete="off"
-			required
-		>
-		<div id="prospectosDropdown" class="dropdown-autocomplete"></div>
-	</div>
-	<input type="hidden" id="cotizacionProspecto">
+        <input type="text" class="form-control mb-2" id="cotizacionProspectoSearch" placeholder="Buscar empresa..."
+          autocomplete="off" required>
+        <div id="prospectosDropdown" class="dropdown-autocomplete"></div>
+      </div>
+      <input type="hidden" id="cotizacionProspecto">
     </div>
 
     <div class="col-md-3">

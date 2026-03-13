@@ -83,20 +83,29 @@ function generateCotizacionPDF(res, header, details) {
         doc.fillColor("black");
     };
 
-    doc.font("Helvetica-Bold", 10);
-    drawHeaderCell(60, 290, 49, 16, "#");
-    drawHeaderCell(108, 290, 175, 16, "Descripción");
-    drawHeaderCell(283, 290, 72, 16, "Periodicidad");
-    drawHeaderCell(355, 290, 50, 16, "Cantidad");
-    drawHeaderCell(405, 290, 70, 16, "Costo Unitario");
-    drawHeaderCell(475, 290, 80, 16, "Total");
+    const drawTableHeader = (headerY) => {
+        doc.font("Helvetica-Bold", 10);
+        drawHeaderCell(60, headerY, 49, 16, "#");
+        drawHeaderCell(108, headerY, 175, 16, "Descripción");
+        drawHeaderCell(283, headerY, 72, 16, "Periodicidad");
+        drawHeaderCell(355, headerY, 50, 16, "Cantidad");
+        drawHeaderCell(405, headerY, 70, 16, "Costo Unitario");
+        drawHeaderCell(475, headerY, 80, 16, "Total");
+    };
+
+    const firstPageHeaderY = 290;
+    const nextPageHeaderY = 80;
+
+    drawTableHeader(firstPageHeaderY);
 
     doc.moveDown();
     doc.font("Helvetica");
 
-    let y = 310;
+    let y = firstPageHeaderY + 20;
+    const tableStartY = y;
     const paddingY = 4;
     const minRowHeight = 20;
+    const pageBottom = () => doc.page.height - doc.page.margins.bottom;
 
     const drawRowCellText = (text, x, cellWidth, rowY, rowHeight, align = "center") => {
         const safeText = String(text ?? "");
@@ -115,11 +124,6 @@ function generateCotizacionPDF(res, header, details) {
 
     details.forEach((c, index) => {
 
-        if (y + 30 > 650) {
-            doc.addPage();
-            y = 80;
-        }
-
         const total = c.cantidad * c.costo_unitario;
 
         //Altura dinámica para descripción
@@ -130,6 +134,13 @@ function generateCotizacionPDF(res, header, details) {
 
         //Altura final de la fila
         const rowHeight = Math.max(minRowHeight, descHeight + paddingY * 2);
+
+        if (y + rowHeight > pageBottom() - 20) {
+            doc.addPage();
+            drawTableHeader(nextPageHeaderY);
+            doc.font("Helvetica");
+            y = nextPageHeaderY + 20;
+        }
 
         // doc.rect(70, y, 510, rowHeight).stroke("#D9D9D9");
 
@@ -145,9 +156,15 @@ function generateCotizacionPDF(res, header, details) {
         y += rowHeight;
     });
 
-    doc.moveDown(2);
-
     // ===== TOTALES =====
+
+    const getTotalsBlockHeight = () => {
+        const rowH = 26;
+        const impGap = 8;
+        const totalGap = 1;
+        const totalBoxH = 20;
+        return rowH + impGap + rowH + totalGap + totalBoxH;
+    };
 
     const drawTotalsStyled = (doc, h, yStart) => {
         const leftX = 367;
@@ -206,16 +223,52 @@ function generateCotizacionPDF(res, header, details) {
         return yTot + boxH;
     };
 
-    drawTotalsStyled(doc, h, y + 180);
-
     // ===== CONDICIONES =====
     const currencyLabel = String(h.moneda || "MXN").toUpperCase() === "USD"
         ? "dólares americanos (USD)"
         : "pesos mexicanos (M.X.N.)";
-    doc.font("Helvetica-Bold", 8).text("CONDICIONES DE PAGO", 60, 688);
-    doc.font("Helvetica").text(`Los precios están expresados en ${currencyLabel}.`);
 
-    doc.moveDown();
+    const paymentText = `Los precios están expresados en ${currencyLabel}.`;
+
+    const getConditionsBlockHeight = () => {
+        const titleH = doc.heightOfString("CONDICIONES DE PAGO", {
+            width: 220,
+            align: "left"
+        });
+        const bodyH = doc.heightOfString(paymentText, {
+            width: 300,
+            align: "left"
+        });
+        return titleH + bodyH + 6;
+    };
+
+    const drawConditions = (yStart) => {
+        doc.font("Helvetica-Bold", 8).fillColor("black").text("CONDICIONES DE PAGO", 60, yStart, { width: 220 });
+        const bodyY = yStart + doc.heightOfString("CONDICIONES DE PAGO", { width: 220 }) + 2;
+        doc.font("Helvetica", 8).fillColor("black").text(paymentText, 60, bodyY, { width: 300 });
+    };
+
+    const totalsHeight = getTotalsBlockHeight();
+    const conditionsHeight = getConditionsBlockHeight();
+    const blockGap = 14;
+    const blockHeight = totalsHeight + blockGap + conditionsHeight;
+
+    const tableHeight = y - tableStartY;
+    const isSmallTable = tableHeight <= 180;
+    const desiredBottomY = pageBottom() - blockHeight;
+    const minBelowTableY = y + 20;
+
+    let blockStartY = isSmallTable
+        ? Math.max(minBelowTableY, desiredBottomY)
+        : minBelowTableY;
+
+    if (blockStartY + blockHeight > pageBottom()) {
+        doc.addPage();
+        blockStartY = doc.page.margins.top + 24;
+    }
+
+    const totalsEndY = drawTotalsStyled(doc, h, blockStartY);
+    drawConditions(totalsEndY + blockGap);
 
     doc.end();
 
