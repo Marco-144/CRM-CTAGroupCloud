@@ -284,7 +284,7 @@
 			return `
 				<div class="ticket-response-item">
 					<div class="ticket-response-head">
-						<strong>${escapeHTML(item.username || "Usuario")}</strong>
+						<strong>${escapeHTML(item.name || item.username || "Usuario")}</strong>
 						<span class="ticket-response-meta">${escapeHTML(formatDateTime(item.created_at))}</span>
 					</div>
 					<div class="ticket-response-meta mb-2">${escapeHTML(roleDept)}</div>
@@ -306,7 +306,7 @@
 			return `
 				<div class="ticket-history-item">
 					<div class="ticket-history-head">
-						<strong>${escapeHTML(item.username || "Sistema")}</strong>
+						<strong>${escapeHTML(item.name || item.username || "Sistema")}</strong>
 						<span class="ticket-history-meta">${escapeHTML(formatDateTime(item.created_at))}</span>
 					</div>
 					<div class="ticket-history-meta mb-2">${escapeHTML(roleDept)}</div>
@@ -456,7 +456,7 @@
 		ticketAssignedUser.innerHTML = `
 		<option value="">Sin asignar</option>
 		${usersCache.map((user) => `
-			<option value="${user.id}">${escapeHTML(user.username)}</option>
+			<option value="${user.id}">${escapeHTML(user.name || user.username || "Usuario")}</option>
 		`).join("")}
 	`;
 	}

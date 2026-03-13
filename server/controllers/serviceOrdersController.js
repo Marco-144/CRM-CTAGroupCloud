@@ -124,8 +124,8 @@ exports.getServiceOrders = async (req, res) => {
                 so.created_at,
                 so.updated_at,
                 p.company AS cliente,
-                uc.username AS created_by,
-                ua.username AS assigned_user
+                COALESCE(uc.name, uc.username) AS created_by,
+                COALESCE(ua.name, ua.username) AS assigned_user
             FROM service_orders so
             LEFT JOIN tickets t ON t.id_ticket = so.id_ticket
             LEFT JOIN prospects p ON p.id_prospect = so.id_prospect AND COALESCE(p.is_client, 0) = 1
@@ -185,10 +185,10 @@ exports.getServiceOrder = async (req, res) => {
                 t.ticket_number,
                 t.subject AS ticket_subject,
                 p.company AS cliente,
-                uc.username AS created_by,
+                COALESCE(uc.name, uc.username) AS created_by,
                 rc.name AS created_by_role,
                 dc.name AS created_by_department,
-                ua.username AS assigned_user,
+                COALESCE(ua.name, ua.username) AS assigned_user,
                 ra.name AS assigned_user_role,
                 da.name AS assigned_user_department
             FROM service_orders so
@@ -214,7 +214,7 @@ exports.getServiceOrder = async (req, res) => {
                 sor.id_service_order_response,
                 sor.id_service_order,
                 sor.id_user,
-                u.username,
+                COALESCE(u.name, u.username) AS name,
                 r.name AS role,
                 d.name AS department,
                 sor.message,
@@ -239,7 +239,7 @@ exports.getServiceOrder = async (req, res) => {
                 soh.id_service_order_history,
                 soh.id_service_order,
                 soh.id_user,
-                u.username,
+                COALESCE(u.name, u.username) AS name,
                 r.name AS role,
                 d.name AS department,
                 soh.field_changed,
