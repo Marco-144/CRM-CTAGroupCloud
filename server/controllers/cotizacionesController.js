@@ -146,11 +146,7 @@ exports.createCotizacion = async (req, res) => {
         let subtotal = 0;
 
         for (const c of conceptos) {
-            if (moneda === "USD") {
-                subtotal += c.cantidad * c.costo_unitario * tipo_cambio;
-            } else {
-                subtotal += c.cantidad * c.costo_unitario;
-            }
+            subtotal += c.cantidad * c.costo_unitario;
         }
 
         const iva = subtotal * 0.16;
@@ -208,11 +204,7 @@ exports.updateCotizacion = async (req, res) => {
         let subtotal = 0;
 
         for (const c of conceptos) {
-            if (moneda === "USD") {
-                subtotal += c.cantidad * c.costo_unitario * tipo_cambio;
-            } else {
-                subtotal += c.cantidad * c.costo_unitario;
-            }
+            subtotal += c.cantidad * c.costo_unitario;
         }
 
         const iva = subtotal * 0.16;
