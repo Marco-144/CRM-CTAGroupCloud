@@ -5,11 +5,26 @@ body {
 
 .main-wrapper {
     min-height: 100vh;
+    width: 100%;
     align-items: stretch;
+    overflow: hidden;
+}
+
+.content-area {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-x: hidden;
+}
+
+
+#content-area {
+  min-width: 0;
+  width: 100%;
 }
 
 /* Sidebar */
 .sidebar {
+    flex: 0 0 250px;
     width: 250px;
     background: white;
     border-right: 1px solid #eee;
@@ -27,6 +42,7 @@ body {
 }
 
 .sidebar.collapsed {
+    flex-basis: 80px;
     width: 80px;
 }
 

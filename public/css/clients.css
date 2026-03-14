@@ -26,3 +26,23 @@
 .clients-view .btn-siguiente {
   width: 90px;
 }
+
+.add-edit-client-view .card {
+  overflow: hidden;
+}
+
+.add-edit-client-view .client-contact-item {
+  overflow: hidden;
+}
+
+.add-edit-client-view,
+.add-edit-client-view form,
+.add-edit-client-view .row,
+.add-edit-client-view [class*="col-"] {
+  min-width: 0;
+}
+
+.add-edit-client-view .form-control,
+.add-edit-client-view .form-select {
+  max-width: 100%;
+}

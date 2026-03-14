@@ -1,24 +1,10 @@
 (() => {
     const table = document.getElementById("clientsTable");
     const searchInput = document.getElementById("clientsSearch");
+    const openAddClientBtn = document.getElementById("openAddClient");
 
-    const form = document.getElementById("clientProfileForm");
-    const profileModal = bootstrap.Modal.getOrCreateInstance(document.getElementById("clientProfileModal"));
     const detailBody = document.getElementById("clientDetailBody");
     const detailModal = bootstrap.Modal.getOrCreateInstance(document.getElementById("clientDetailModal"));
-
-    const clientProspectId = document.getElementById("clientProspectId");
-    const clientRfc = document.getElementById("clientRfc");
-    const clientFiscalName = document.getElementById("clientFiscalName");
-    const clientFiscalRegime = document.getElementById("clientFiscalRegime");
-    const clientBillingEmail = document.getElementById("clientBillingEmail");
-    const clientAddress = document.getElementById("clientAddress");
-    const clientCity = document.getElementById("clientCity");
-    const clientState = document.getElementById("clientState");
-    const clientPostalCode = document.getElementById("clientPostalCode");
-    const clientCountry = document.getElementById("clientCountry");
-    const clientFiscalDoc = document.getElementById("clientFiscalDoc");
-    const currentFiscalDocLink = document.getElementById("currentFiscalDocLink");
 
     const showAlert = window.showAppAlert || ((message) => Promise.resolve(window.alert(message)));
     const showConfirm = window.showAppConfirm || ((message) => Promise.resolve(window.confirm(message)));
@@ -89,10 +75,10 @@
     function renderTable(rows) {
         if (!rows.length) {
             table.innerHTML = `
-			<tr>
-				<td colspan="6" class="text-center text-muted py-4">No hay clientes registrados</td>
-			</tr>
-		`;
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">No hay clientes registrados</td>
+                </tr>
+            `;
             renderPagination(0, rows);
             return;
         }
@@ -111,25 +97,25 @@
                 : "-";
 
             return `
-			<tr>
-				<td>${escapeHTML(item.company || "-")}</td>
-				<td>${escapeHTML(item.name || "-")}</td>
-				<td>${escapeHTML(item.rfc || "-")}</td>
-				<td>${escapeHTML(item.billing_email || "-")}</td>
-				<td>${doc}</td>
-				<td class="text-end">
-                    <button class="btn btn-sm btn-outline-secondary view-client" data-id="${item.id_client}">
-                        <i class="bi bi-eye"></i>
-                    </button>
-					<button class="btn btn-sm btn-outline-primary edit-client" data-id="${item.id_client}">
-						<i class="bi bi-pencil"></i>
-					</button>
-                    <button class="btn btn-sm btn-outline-danger ms-2 delete-client" data-id="${item.id_client}">
-                        <i class="bi bi-trash"></i>
-                    </button>
-				</td>
-			</tr>
-		`;
+                <tr>
+                    <td>${escapeHTML(item.company || "-")}</td>
+                    <td>${escapeHTML(item.name || "-")}</td>
+                    <td>${escapeHTML(item.rfc || "-")}</td>
+                    <td>${escapeHTML(item.billing_email || "-")}</td>
+                    <td>${doc}</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-secondary view-client" data-id="${item.id_client}">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary edit-client" data-id="${item.id_client}">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger ms-2 delete-client" data-id="${item.id_client}">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
         }).join("");
 
         renderPagination(rows.length, rows);
@@ -166,37 +152,11 @@
         applySearch();
     }
 
-    async function openProfile(clientId) {
-        const response = await apiFetch(`/api/clients/${clientId}`);
-        const payload = await response.json().catch(() => ({}));
-
-        if (!response.ok || !payload.success || !payload.data) {
-            throw new Error(payload.message || "No se pudo cargar el perfil del cliente");
+    function navigateToEditClient(clientId) {
+        window.currentClientId = clientId ? Number(clientId) : null;
+        if (typeof loadView === "function") {
+            loadView("../views/addEditClient.html", "../css/addEditClient.css", "../js/addEditClient.js");
         }
-
-        const item = payload.data;
-
-        clientProspectId.value = item.id_prospect;
-        clientRfc.value = item.rfc || "";
-        clientFiscalName.value = item.fiscal_name || "";
-        clientFiscalRegime.value = item.fiscal_regime || "";
-        clientBillingEmail.value = item.billing_email || "";
-        clientAddress.value = item.address || "";
-        clientCity.value = item.city || "";
-        clientState.value = item.state || "";
-        clientPostalCode.value = item.postal_code || "";
-        clientCountry.value = item.country || "Mexico";
-        clientFiscalDoc.value = "";
-
-        if (item.tax_certificate_pdf) {
-            currentFiscalDocLink.href = `/${item.tax_certificate_pdf}`;
-            currentFiscalDocLink.classList.remove("d-none");
-        } else {
-            currentFiscalDocLink.href = "#";
-            currentFiscalDocLink.classList.add("d-none");
-        }
-
-        profileModal.show();
     }
 
     async function openClientDetail(clientId) {
@@ -211,6 +171,18 @@
         const docLink = item.tax_certificate_pdf
             ? `<a class="doc-link" href="/${item.tax_certificate_pdf}" target="_blank" rel="noopener">Ver constancia</a>`
             : "Sin documento";
+
+        const contacts = Array.isArray(item.contacts) ? item.contacts : [];
+        const contactsMarkup = contacts.length
+            ? contacts.map((contact) => `
+                <div class="border rounded-3 p-2 mb-2">
+                    <div><small class="text-muted">Nombre</small><div>${escapeHTML(contact.name || "-")}</div></div>
+                    <div><small class="text-muted">Puesto</small><div>${escapeHTML(contact.position || "-")}</div></div>
+                    <div><small class="text-muted">Teléfono</small><div>${escapeHTML(contact.phone || "-")}</div></div>
+                    <div><small class="text-muted">Correo</small><div>${escapeHTML(contact.email || "-")}</div></div>
+                </div>
+            `).join("")
+            : "<div class=\"text-muted\">Sin contactos registrados</div>";
 
         detailBody.innerHTML = `
             <div class="client-detail-section mb-4">
@@ -230,8 +202,8 @@
             </div>
 
             <div class="client-detail-section border-top pt-3">
-                <h6 class="fw-semibold mb-3">Contacto</h6>
-                <div class="row g-3">
+                <h6 class="fw-semibold mb-3">Cliente</h6>
+                <div class="row g-3 mb-3">
                     <div class="col-md-6"><small class="text-muted d-block">Nombre</small><div>${escapeHTML(item.name || "-")}</div></div>
                     <div class="col-md-6"><small class="text-muted d-block">Empresa</small><div>${escapeHTML(item.company || "-")}</div></div>
                     <div class="col-md-6"><small class="text-muted d-block">Correo</small><div>${escapeHTML(item.email || "-")}</div></div>
@@ -239,49 +211,12 @@
                     <div class="col-md-6"><small class="text-muted d-block">Prioridad</small><div>${escapeHTML(item.priority || "-")}</div></div>
                     <div class="col-md-6"><small class="text-muted d-block">Estatus</small><div>${escapeHTML(item.status || "-")}</div></div>
                 </div>
+                <h6 class="fw-semibold mb-2">Contactos</h6>
+                ${contactsMarkup}
             </div>
         `;
 
         detailModal.show();
-    }
-
-    async function saveProfile(event) {
-        event.preventDefault();
-
-        const id = clientProspectId.value;
-        if (!id) {
-            await showAlert("Cliente invalido");
-            return;
-        }
-
-        const body = new FormData();
-        body.append("rfc", clientRfc.value.trim());
-        body.append("fiscal_name", clientFiscalName.value.trim());
-        body.append("fiscal_regime", clientFiscalRegime.value.trim());
-        body.append("billing_email", clientBillingEmail.value.trim());
-        body.append("address", clientAddress.value.trim());
-        body.append("city", clientCity.value.trim());
-        body.append("state", clientState.value.trim());
-        body.append("postal_code", clientPostalCode.value.trim());
-        body.append("country", clientCountry.value.trim() || "Mexico");
-
-        if (clientFiscalDoc.files[0]) {
-            body.append("tax_certificate_pdf", clientFiscalDoc.files[0]);
-        }
-
-        const response = await apiFetch(`/api/clients/${id}/profile`, {
-            method: "PUT",
-            body,
-        });
-
-        const payload = await response.json().catch(() => ({}));
-
-        if (!response.ok || !payload.success) {
-            throw new Error(payload.message || "No se pudo guardar el perfil fiscal");
-        }
-
-        profileModal.hide();
-        await loadClients();
     }
 
     async function deleteClient(clientId) {
@@ -298,8 +233,12 @@
         await loadClients();
     }
 
-    if (table && form) {
-        searchInput.addEventListener("input", applySearch);
+    if (table) {
+        searchInput?.addEventListener("input", applySearch);
+
+        openAddClientBtn?.addEventListener("click", () => {
+            navigateToEditClient("");
+        });
 
         table.addEventListener("click", async (event) => {
             const viewBtn = event.target.closest(".view-client");
@@ -313,7 +252,7 @@
                 }
 
                 if (editBtn) {
-                    await openProfile(editBtn.dataset.id);
+                    navigateToEditClient(editBtn.dataset.id);
                     return;
                 }
 
@@ -325,20 +264,12 @@
             }
         });
 
-        form.addEventListener("submit", async (event) => {
-            try {
-                await saveProfile(event);
-            } catch (error) {
-                await showAlert(error.message);
-            }
-        });
-
         loadClients().catch((error) => {
             table.innerHTML = `
-			<tr>
-				<td colspan="6" class="text-center text-danger py-4">${escapeHTML(error.message)}</td>
-			</tr>
-		`;
+                <tr>
+                    <td colspan="6" class="text-center text-danger py-4">${escapeHTML(error.message)}</td>
+                </tr>
+            `;
         });
     }
 })();

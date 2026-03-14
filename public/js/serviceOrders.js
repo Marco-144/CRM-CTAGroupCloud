@@ -19,18 +19,7 @@
     const soDescription = document.getElementById("soDescription");
     const soAttachment = document.getElementById("soAttachment");
 
-    const conversationTitle = document.getElementById("serviceOrderConversationTitle");
-    const conversationMeta = document.getElementById("serviceOrderConversationMeta");
-    const responsesList = document.getElementById("serviceOrderResponsesList");
-    const historyList = document.getElementById("serviceOrderHistoryList");
-    const responseForm = document.getElementById("serviceOrderResponseForm");
-    const conversationOrderId = document.getElementById("serviceOrderConversationId");
-    const responseMessage = document.getElementById("serviceOrderResponseMessage");
-    const responseAttachment = document.getElementById("serviceOrderResponseAttachment");
-    const openRelatedTicketBtn = document.getElementById("serviceOrderOpenTicketBtn");
-
     const orderModal = bootstrap.Modal.getOrCreateInstance(document.getElementById("serviceOrderModal"));
-    const viewModal = bootstrap.Modal.getOrCreateInstance(document.getElementById("viewSOModal"));
 
     const showAlert = window.showAppAlert || ((message) => Promise.resolve(window.alert(message)));
     const showConfirm = window.showAppConfirm || ((message) => Promise.resolve(window.confirm(message)));
@@ -341,53 +330,6 @@
         renderPagination(data.length, data);
     }
 
-    function renderResponses(items) {
-        if (!Array.isArray(items) || !items.length) {
-            responsesList.innerHTML = `<div class="text-muted">No hay respuestas todavía.</div>`;
-            return;
-        }
-
-        responsesList.innerHTML = items.map((item) => {
-            const roleDept = `${item.role || "Sin rol"} / ${item.department || "Sin departamento"}`;
-            const attachments = getAttachmentsMarkup(item.attachments, item.attachment);
-
-            return `
-                <div class="service-order-response-item">
-                    <div class="service-order-response-head">
-                        <strong>${escapeHTML(item.name || item.username || "Usuario")}</strong>
-                        <span class="service-order-response-meta">${escapeHTML(formatDateTime(item.created_at))}</span>
-                    </div>
-                    <div class="service-order-response-meta mb-2">${escapeHTML(roleDept)}</div>
-                    <div>${escapeHTML(item.message || "")}</div>
-                    ${attachments}
-                </div>
-            `;
-        }).join("");
-    }
-
-    function renderHistory(items) {
-        if (!Array.isArray(items) || !items.length) {
-            historyList.innerHTML = `<div class="text-muted">Sin cambios registrados.</div>`;
-            return;
-        }
-
-        historyList.innerHTML = items.map((item) => {
-            const roleDept = `${item.role || "Sin rol"} / ${item.department || "Sin departamento"}`;
-
-            return `
-                <div class="service-order-history-item">
-                    <div class="service-order-history-head">
-                        <strong>${escapeHTML(item.name || item.username || "Sistema")}</strong>
-                        <span class="service-order-history-meta">${escapeHTML(formatDateTime(item.created_at))}</span>
-                    </div>
-                    <div class="service-order-history-meta mb-2">${escapeHTML(roleDept)}</div>
-                    <div class="small text-muted">${escapeHTML(capitalize(historyFieldLabel(item.field_changed)))}</div>
-                    <div>${escapeHTML(historyDescription(item))}</div>
-                </div>
-            `;
-        }).join("");
-    }
-
     async function loadProspects() {
         const [clientsRes, ticketsRes, usersRes] = await Promise.all([
             apiFetch("/api/clients"),
@@ -551,113 +493,10 @@
     }
 
     async function openDetail(id) {
-        const response = await apiFetch(`/api/service-orders/${id}`);
-        const payload = await response.json();
-
-        if (!response.ok || !payload.success || !payload.data) {
-            throw new Error(payload.message || "No se pudo cargar el detalle");
+        window.currentServiceOrderDetailId = Number(id || 0) || null;
+        if (typeof loadView === "function") {
+            loadView("views/serviceOrderDetail.html", "css/serviceOrderDetail.css", "js/serviceOrderDetail.js");
         }
-
-        const order = payload.data;
-        conversationOrderId.value = String(order.id_service_order);
-        responseMessage.value = "";
-        if (responseAttachment) responseAttachment.value = "";
-
-        conversationTitle.textContent = `Detalle ${order.order_number || ""}`.trim();
-        const createdByRoleDept = `${order.created_by_role || "Sin rol"}/${order.created_by_department || "Sin departamento"}`;
-        conversationMeta.innerHTML = `
-            <div class="service-order-meta-card">
-                <div class="service-order-meta-grid">
-                    <div class="service-order-meta-item">
-                        <span class="service-order-meta-label">Cliente</span>
-                        <span class="service-order-meta-value">${escapeHTML(order.cliente || order.prospecto || "-")}</span>
-                    </div>
-                    <div class="service-order-meta-item">
-                        <span class="service-order-meta-label">Ticket</span>
-                        <span class="service-order-meta-value">${escapeHTML(order.ticket_number || "-")}</span>
-                    </div>
-                    <div class="service-order-meta-item">
-                        <span class="service-order-meta-label">Tipo de servicio</span>
-                        <span class="service-order-meta-value">${escapeHTML(order.service_type || "-")}</span>
-                    </div>
-                    <div class="service-order-meta-item">
-                        <span class="service-order-meta-label">Asignado a</span>
-                        <span class="service-order-meta-value">${escapeHTML(order.assigned_user || "-")}</span>
-                    </div>
-                    <div class="service-order-meta-item">
-                        <span class="service-order-meta-label">Prioridad</span>
-                        <span class="service-order-meta-value">${getPriorityBadgeMarkup(order.priority)}</span>
-                    </div>
-                    <div class="service-order-meta-item">
-                        <span class="service-order-meta-label">Estatus</span>
-                        <span class="service-order-meta-value">${getStatusBadgeMarkup(order.status)}</span>
-                    </div>
-                    <div class="service-order-meta-item">
-                        <span class="service-order-meta-label">Inicio</span>
-                        <span class="service-order-meta-value">${escapeHTML(formatDate(order.start_date))}</span>
-                    </div>
-                    <div class="service-order-meta-item">
-                        <span class="service-order-meta-label">Entrega estimada</span>
-                        <span class="service-order-meta-value">${escapeHTML(formatDate(order.estimated_delivery))}</span>
-                    </div>
-                    <div class="service-order-meta-item service-order-meta-item-wide">
-                        <span class="service-order-meta-label">Creador</span>
-                        <span class="service-order-meta-value">${escapeHTML(order.created_by || "-")} <span class="text-muted">(${escapeHTML(createdByRoleDept)})</span></span>
-                    </div>
-                </div>
-                <div class="service-order-description-block">
-                    <span class="service-order-meta-label">Descripción</span>
-                    <p class="service-order-description-value mb-0">${escapeHTML(order.description || "-")}</p>
-                </div>
-            </div>
-        `;
-
-        if (openRelatedTicketBtn) {
-            if (Number(order.id_ticket || 0) > 0) {
-                openRelatedTicketBtn.dataset.id = String(order.id_ticket);
-                openRelatedTicketBtn.classList.remove("d-none");
-            } else {
-                openRelatedTicketBtn.dataset.id = "";
-                openRelatedTicketBtn.classList.add("d-none");
-            }
-        }
-
-        renderResponses(order.responses || []);
-        renderHistory(order.history || []);
-        viewModal.show();
-    }
-
-    async function saveResponse(event) {
-        event.preventDefault();
-
-        const id = Number(conversationOrderId.value);
-        const message = responseMessage.value.trim();
-
-        if (!id || (!message && !responseAttachment?.files?.length)) {
-            await showAlert("Debes escribir un mensaje o seleccionar al menos un adjunto");
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append("message", message);
-        formData.append("id_user", String(getLoggedUserId()));
-
-        for (const file of Array.from(responseAttachment?.files || [])) {
-            formData.append("attachments", file);
-        }
-
-        const response = await apiFetch(`/api/service-orders/${id}/responses`, {
-            method: "POST",
-            body: formData
-        });
-
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok || !payload.success) {
-            throw new Error(payload.message || "No se pudo enviar la respuesta");
-        }
-
-        await openDetail(id);
-        await loadOrders();
     }
 
     async function deleteOrder(id) {
@@ -691,18 +530,6 @@
             } catch (error) {
                 await showAlert(error.message);
             }
-        });
-
-        responseForm?.addEventListener("submit", async (event) => {
-            try {
-                await saveResponse(event);
-            } catch (error) {
-                await showAlert(error.message);
-            }
-        });
-
-        openRelatedTicketBtn?.addEventListener("click", () => {
-            openTicketConversation(openRelatedTicketBtn.dataset.id);
         });
 
         searchInput.addEventListener("input", () => {
