@@ -118,6 +118,44 @@
 	overflow: hidden;
 }
 
+.cotizacion-view #serviceOrdersCards {
+	display: none;
+}
+
+.cotizacion-view .service-order-card {
+	background: #ffffff;
+	border-radius: 14px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+	padding: 14px;
+	margin-bottom: 12px;
+}
+
+.cotizacion-view .service-order-card-title {
+	font-size: 16px;
+	font-weight: 600;
+	margin-bottom: 6px;
+}
+
+.cotizacion-view .service-order-card-meta {
+	font-size: 13px;
+	color: #6b7280;
+	margin-bottom: 4px;
+}
+
+.cotizacion-view .service-order-card-actions,
+.cotizacion-view .service-order-row-actions {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.cotizacion-view .service-order-row-actions .btn,
+.cotizacion-view .service-order-card-actions .btn {
+	margin: 0 !important;
+}
+
 .service-order-response-item,
 .service-order-history-item,
 .service-order-meta-value,
@@ -141,5 +179,37 @@
 
 	.service-order-meta-grid {
 		grid-template-columns: 1fr;
+	}
+
+	.cotizacion-view .table-responsive {
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	.cotizacion-view table {
+		min-width: 980px;
+	}
+
+	.cotizacion-view .d-flex.gap-2.flex-wrap {
+		width: 100%;
+	}
+
+	.cotizacion-view .d-flex.gap-2.flex-wrap .form-control,
+	.cotizacion-view .d-flex.gap-2.flex-wrap .form-select {
+		width: 100% !important;
+	}
+}
+
+@media (max-width: 768px) and (orientation: portrait) {
+	.cotizacion-view .table-responsive {
+		display: none;
+	}
+
+	.cotizacion-view #serviceOrdersCards {
+		display: block;
+	}
+
+	.cotizacion-view #openAddSO {
+		width: 100%;
 	}
 }

@@ -52,6 +52,64 @@
 	align-items: center;
 }
 
+.cotizacion-view #cotizacionesCards {
+	display: none;
+}
+
+.cotizacion-view .cotizacion-card {
+	background: #ffffff;
+	border-radius: 14px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+	padding: 14px;
+	margin-bottom: 12px;
+}
+
+.cotizacion-view .cotizacion-card-title {
+	font-weight: 600;
+	font-size: 16px;
+	margin-bottom: 8px;
+}
+
+.cotizacion-view .cotizacion-card-meta {
+	font-size: 13px;
+	color: #6b7280;
+	margin-bottom: 4px;
+}
+
+.cotizacion-view .cotizacion-card-amount {
+	font-size: 15px;
+	font-weight: 600;
+}
+
+.cotizacion-view .cotizacion-card-actions {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 8px;
+	margin-top: 12px;
+	flex-wrap: wrap;
+}
+
+.cotizacion-view .cotizacion-card-actions .btn {
+	margin: 0 !important;
+}
+
+.cotizacion-view td.text-end .row-actions {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 6px;
+	flex-wrap: nowrap;
+}
+
+.cotizacion-view td.text-end .row-actions .btn {
+	margin: 0 !important;
+}
+
+.cotizacion-view td.text-end .row-actions .vr {
+	margin: 0 2px;
+}
+
 .cotizacion-view table {
 	margin-top: 8px;
 }
@@ -143,4 +201,50 @@
 #createSaleModal .sale-modal-body {
 	max-height: 70vh;
 	overflow-y: auto;
+}
+
+@media (max-width: 1200px) {
+	.cotizacion-view .table-responsive {
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	.cotizacion-view table {
+		min-width: 940px;
+	}
+
+	.cotizacion-view .filters-wrapper {
+		justify-content: flex-start;
+		width: 100%;
+	}
+}
+
+@media (max-width: 992px) {
+	.cotizacion-view .filters-wrapper {
+		gap: 8px;
+	}
+
+	.cotizacion-view .filters-wrapper .form-control,
+	.cotizacion-view .filters-wrapper .form-select,
+	.cotizacion-view .filters-wrapper .btn-limpiar {
+		width: 100% !important;
+	}
+
+	.cotizacion-view .row.mb-4 .card {
+		height: 100%;
+	}
+}
+
+@media (max-width: 768px) and (orientation: portrait) {
+	.cotizacion-view .table-responsive {
+		display: none;
+	}
+
+	.cotizacion-view #cotizacionesCards {
+		display: block;
+	}
+
+	.cotizacion-view .btn-primary {
+		width: 100%;
+	}
 }

@@ -1,6 +1,14 @@
 <form id="addCotizacionForm" class="addCotizacionForm" novalidate>
 
-  <h4 class="mb-4">Nueva Cotización</h4>
+  <div class="d-flex justify-content-between align-items-center mb-4 gap-2 flex-wrap">
+    <div class="d-flex align-items-center gap-2">
+      <button class="btn btn-light d-lg-none sidebar-mobile-toggle" id="mobileMenuBtn" type="button"
+        aria-label="Abrir menú lateral">
+        <i class="bi bi-list fs-4"></i>
+      </button>
+      <h4 class="mb-0">Nueva Cotización</h4>
+    </div>
+  </div>
 
   <!-- PROSPECTO -->
   <div class="row g-3 mb-4">
@@ -42,7 +50,7 @@
     <h5><strong>Total: <span id="totalGeneral">$0.00</span></strong></h5>
   </div>
 
-  <div class="d-flex justify-content-end gap-2">
+  <div class="d-flex justify-content-end gap-2 add-cotizacion-actions">
     <button type="button" class="btn btn-outline-secondary" id="cancelCotizacionBtn">Cancelar</button>
     <button type="submit" class="btn btn-primary">Guardar Cotización</button>
   </div>

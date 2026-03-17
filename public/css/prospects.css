@@ -61,6 +61,7 @@
     border-radius: 10px;
     padding: 8px 12px;
     border: 1px solid #e5e7eb;
+    width: 100%;
 }
 
 .prospects-view .form-select {
@@ -95,7 +96,12 @@
     font-size: 14px;
     border-bottom: 1px solid #f3f4f6;
     color: #374151;
-} 
+}
+
+.prospects-view tbody td,
+.prospects-view tbody th {
+    vertical-align: middle;
+}
 
 /* Status */
 .prospects-view .status-active {
@@ -146,3 +152,121 @@
     background-color: #fee2e2;
 }
 
+#prospectsCards {
+    display: none;
+}
+
+.prospects-view td.text-end {
+    white-space: nowrap;
+    text-align: right;
+}
+
+.prospects-view td.text-end button {
+    margin-left: 6px;
+}
+
+@media (max-width: 900px) {
+    .prospects-view .prospect-actions {
+        justify-content: flex-end;
+    }
+
+    .prospects-view .prospect-actions button {
+        width: 32px;
+        height: 32px;
+    }
+}
+
+/* MOBILE */
+@media (max-width: 768px) {
+    .prospects-view .row.mb-4 {
+        margin-bottom: 12px;
+        gap: 14px;
+    }
+
+    .prospects-view .row.mb-4 .card {
+        margin-bottom: 0;
+    }
+
+    .prospects-view .card .d-flex.gap-2 {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .prospects-view .form-select {
+        width: 100%;
+    }
+
+    .prospects-view #searchInput {
+        min-width: 100% !important;
+    }
+
+    .prospects-view #statusFilter {
+        min-width: 100% !important;
+    }
+
+    .prospect-card {
+        background: white;
+        border-radius: 14px;
+        padding: 16px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        margin-bottom: 12px;
+    }
+
+    .prospect-card h6 {
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+
+    .prospect-meta {
+        font-size: 13px;
+        color: #6b7280;
+    }
+
+    .prospect-actions {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 8px;
+        margin-top: 12px;
+        flex-wrap: nowrap;
+        width: 100%;
+    }
+
+    .prospect-actions button {
+        width: 34px;
+        height: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+}
+
+@media (max-width: 768px) and (orientation: portrait) {
+    .prospects-view table {
+        display: none;
+    }
+}
+
+@media (max-width: 1000px) {
+    .prospects-view .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .prospects-view table {
+        font-size: 13px;
+        min-width: 760px;
+    }
+
+    .prospects-view thead th,
+    .prospects-view tbody td {
+        white-space: nowrap;
+    }
+}
+
+@media (max-width: 576px) {
+    .prospects-view .btn-primary {
+        width: 100%;
+    }
+}

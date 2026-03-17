@@ -27,6 +27,76 @@
   width: 90px;
 }
 
+.clients-view #clientsCards {
+  display: none;
+}
+
+.clients-view .client-card {
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.clients-view .client-card h6 {
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.clients-view .client-card-meta {
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.clients-view .client-card-actions,
+.clients-view .table-row-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.clients-view .table-row-actions {
+  margin-top: 0;
+}
+
+.clients-view .table-row-actions .btn,
+.clients-view .client-card-actions .btn {
+  margin: 0 !important;
+}
+
+@media (max-width: 992px) {
+  .clients-view .form-control {
+    width: 100% !important;
+  }
+
+  .clients-view .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .clients-view table {
+    min-width: 720px;
+  }
+}
+
+@media (max-width: 768px) and (orientation: portrait) {
+  .clients-view .table-responsive {
+    display: none;
+  }
+
+  .clients-view #clientsCards {
+    display: block;
+  }
+
+  .clients-view #openAddClient {
+    width: 100%;
+  }
+}
+
 .add-edit-client-view .card {
   overflow: hidden;
 }

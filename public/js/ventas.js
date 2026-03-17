@@ -1,5 +1,7 @@
 (() => {
+    // Vista de ventas: listado, búsqueda, detalle, pagos y cambios de estatus.
     const table = document.getElementById("salesTable");
+    const cards = document.getElementById("salesCards");
     const searchInput = document.getElementById("salesSearch");
     const detailBody = document.getElementById("saleDetailBody");
 
@@ -17,9 +19,18 @@
 
     let salesCache = [];
     let currentSaleId = null;
-    const pageSize = 7;
+    const TABLE_PAGE_SIZE = 7;
+    const CARD_PAGE_SIZE = 5;
     let currentPage = 1;
     const paginationContainer = ensurePaginationContainer(table, "salesPagination");
+
+    function isMobileVerticalView() {
+        return window.innerWidth <= 768 && window.innerHeight > window.innerWidth;
+    }
+
+    function getCurrentPageSize() {
+        return isMobileVerticalView() ? CARD_PAGE_SIZE : TABLE_PAGE_SIZE;
+    }
 
     function ensurePaginationContainer(tableElement, containerId) {
         let container = document.getElementById(containerId);
@@ -39,6 +50,7 @@
     function renderPagination(totalItems, rowsToRender) {
         if (!paginationContainer) return;
 
+        const pageSize = getCurrentPageSize();
         const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
         if (totalItems <= pageSize) {
@@ -79,6 +91,36 @@
             .replace(/'/g, "&#39;");
     }
 
+    function renderCards(rows) {
+        if (!cards) return;
+
+        cards.innerHTML = rows.map((sale) => `
+            <div class="sale-card">
+                <div class="sale-card-title">${escapeHTML(sale.sale_folio || "-")}</div>
+                <div class="sale-card-meta">Empresa: ${escapeHTML(sale.company || "-")}</div>
+                <div class="sale-card-meta">Fecha: ${formatDate(sale.sale_date)}</div>
+                <div class="sale-card-meta">Total: ${formatMoney(sale.total)}</div>
+                <div class="sale-card-meta">Pendiente: ${formatMoney(sale.pending_amount)}</div>
+                <div class="sale-card-meta">Pago: ${escapeHTML(sale.payment_status || "Pendiente")}</div>
+                <div class="sale-card-meta">Estatus: ${escapeHTML(sale.sale_status || "Activa")}</div>
+                <div class="sale-card-actions mt-2">
+                    <button class="btn btn-sm btn-outline-primary detail-sale" data-id="${sale.id_sale}">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-success add-payment" data-id="${sale.id_sale}">
+                        <i class="bi bi-cash-coin"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary toggle-status" data-id="${sale.id_sale}">
+                        <i class="bi bi-arrow-repeat"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger delete-sale" data-id="${sale.id_sale}">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `).join("");
+    }
+
 
     /* ============================
     KPIs
@@ -116,12 +158,22 @@
     }
 
     function renderTable(rows) {
+        const useCards = isMobileVerticalView();
+        const pageSize = getCurrentPageSize();
+
+        if (cards) {
+            cards.style.display = useCards ? "block" : "none";
+        }
+
         if (!rows.length) {
             table.innerHTML = `
 			<tr>
                 <td colspan="8" class="text-center text-muted py-4">No hay ventas registradas</td>
 			</tr>
 		`;
+            if (cards) {
+                cards.innerHTML = `<div class="text-center text-muted py-4">No hay ventas registradas</div>`;
+            }
             renderPagination(0, rows);
             return;
         }
@@ -134,6 +186,13 @@
         const start = (currentPage - 1) * pageSize;
         const paginatedRows = rows.slice(start, start + pageSize);
 
+        if (useCards) {
+            table.innerHTML = "";
+            renderCards(paginatedRows);
+            renderPagination(rows.length, rows);
+            return;
+        }
+
         table.innerHTML = paginatedRows.map((sale) => `
 		<tr>
 			<td>${escapeHTML(sale.sale_folio || "-")}</td>
@@ -143,19 +202,21 @@
             <td>${formatMoney(sale.pending_amount)}</td>
 			<td>${escapeHTML(sale.payment_status || "Pendiente")}</td>
 			<td>${escapeHTML(sale.sale_status || "Activa")}</td>
-			<td class="text-end">
-				<button class="btn btn-sm btn-outline-primary me-2 detail-sale" data-id="${sale.id_sale}">
-					<i class="bi bi-eye"></i>
-				</button>
-				<button class="btn btn-sm btn-outline-success me-2 add-payment" data-id="${sale.id_sale}">
-					<i class="bi bi-cash-coin"></i>
-				</button>
-				<button class="btn btn-sm btn-outline-secondary me-2 toggle-status" data-id="${sale.id_sale}">
-					<i class="bi bi-arrow-repeat"></i>
-				</button>
-				<button class="btn btn-sm btn-outline-danger delete-sale" data-id="${sale.id_sale}">
-					<i class="bi bi-trash"></i>
-				</button>
+            <td class="text-end">
+                <div class="table-sale-actions">
+                    <button class="btn btn-sm btn-outline-primary detail-sale" data-id="${sale.id_sale}">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-success add-payment" data-id="${sale.id_sale}">
+                        <i class="bi bi-cash-coin"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary toggle-status" data-id="${sale.id_sale}">
+                        <i class="bi bi-arrow-repeat"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger delete-sale" data-id="${sale.id_sale}">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
 			</td>
 		</tr>
 	`).join("");
@@ -349,7 +410,7 @@
     if (table && paymentForm) {
         searchInput.addEventListener("input", applySearch);
 
-        table.addEventListener("click", async (event) => {
+        async function handleSalesAction(event) {
             const detailBtn = event.target.closest(".detail-sale");
             const addPaymentBtn = event.target.closest(".add-payment");
             const toggleBtn = event.target.closest(".toggle-status");
@@ -380,7 +441,10 @@
             } catch (error) {
                 await showAlert(error.message);
             }
-        });
+        }
+
+        table.addEventListener("click", handleSalesAction);
+        cards?.addEventListener("click", handleSalesAction);
 
         paymentForm.addEventListener("submit", async (event) => {
             try {
@@ -388,6 +452,12 @@
             } catch (error) {
                 await showAlert(error.message);
             }
+        });
+
+        window.addEventListener("app:resize", applySearch);
+        window.addEventListener("resize", applySearch);
+        window.addEventListener("orientationchange", () => {
+            setTimeout(applySearch, 200);
         });
 
         loadSales().catch((error) => {

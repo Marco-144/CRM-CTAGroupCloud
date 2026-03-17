@@ -18,8 +18,8 @@ body {
 
 
 #content-area {
-  min-width: 0;
-  width: 100%;
+    min-width: 0;
+    width: 100%;
 }
 
 /* Sidebar */
@@ -157,4 +157,129 @@ body {
     margin-inline: auto;
     padding: 0;
     border-radius: 12px;
+}
+
+
+/* =======================
+    RESPONSIVE
+======================= */
+
+#sidebarOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    z-index: 998;
+}
+
+.sidebar {
+    z-index: 999;
+}
+
+/* Tablet */
+@media (max-width: 992px) {
+    .sidebar {
+        flex: 0 0 220px;
+        width: 220px;
+    }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+    .main-wrapper {
+        overflow: visible;
+    }
+
+    .sidebar {
+
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+
+        width: 260px;
+        flex: none;
+
+        transform: translateX(-100%);
+        transition: transform .3s ease;
+
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .2);
+    }
+
+    .sidebar.mobile-open {
+        transform: translateX(0);
+    }
+
+    #sidebarOverlay.active {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .content-area {
+        padding: 20px;
+    }
+}
+
+/* Small mobile */
+@media (max-width: 480px) {
+    .sidebar {
+        width: 240px;
+    }
+
+    .content-area {
+        padding: 16px;
+    }
+}
+
+/* Mobile fix horizontal */
+@media (max-width: 900px) {
+    .content-area {
+        padding: 20px;
+    }
+
+}
+
+@media (orientation: landscape) and (max-width: 500px) {
+    .sidebar {
+        width: 240px;
+    }
+
+    .logo-icon {
+        width: 160px;
+    }
+}
+
+@media (orientation: landscape) and (max-width: 500px) {
+    .sidebar {
+        width: 240px;
+    }
+
+    .sidebar .logo-icon {
+        width: 140px;
+        max-width: 140px;
+    }
+}
+
+.sidebar .logo-icon {
+    width: 100%;
+    max-width: 150px;
+    height: auto;
+    display: block;
+    margin: auto;
+}
+
+.sidebar.collapsed .logo-icon {
+    max-width: 42px;
+}
+
+/* landscape mobile */
+
+@media (orientation: landscape) and (max-height:500px) {
+
+    .sidebar .logo-icon {
+        max-width: 120px;
+    }
+
 }

@@ -1,4 +1,5 @@
 (() => {
+    // Vista de alta/edición de cliente con perfil fiscal y contactos dinámicos.
     const form = document.getElementById("addEditClientForm");
     const clientIdInput = document.getElementById("aeClientId");
     const titleEl = document.getElementById("addEditClientTitle");
@@ -30,6 +31,7 @@
 
     const showAlert = window.showAppAlert || ((message) => Promise.resolve(window.alert(message)));
 
+    // Regresa al listado principal de clientes.
     function goBack() {
         window.currentClientId = null;
         if (typeof loadView === "function") {
@@ -49,6 +51,7 @@
             .replace(/'/g, "&#39;");
     }
 
+    // Crea una fila editable de contacto.
     function createContactRow(contact = {}) {
         const row = document.createElement("div");
         row.className = "border rounded-3 p-2 client-contact-item";
@@ -114,6 +117,7 @@
         });
     }
 
+    // Obtiene los contactos capturados en el formulario.
     function getContactsFromForm() {
         const rows = Array.from(clientContactsList?.querySelectorAll(".client-contact-item") || []);
 
@@ -174,6 +178,7 @@
         if (titleEl) titleEl.textContent = "Editar Cliente";
     }
 
+    // Reinicia el formulario en modo alta.
     function initBlankForm() {
         form?.reset();
         clientIdInput.value = "";
@@ -187,6 +192,7 @@
         if (titleEl) titleEl.textContent = "Agregar Cliente";
     }
 
+    // Guarda cliente nuevo o actualiza cliente existente.
     async function saveClient(event) {
         event.preventDefault();
 

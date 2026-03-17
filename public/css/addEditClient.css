@@ -76,6 +76,30 @@
   background-color: #5a4bd1;
 }
 
+@media (max-width: 992px) {
+  .addEditClientForm .row.g-3 > [class*="col-md"],
+  .addEditClientForm .row.g-2 > [class*="col-lg"] {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .addEditClientForm .d-flex.align-items-center.gap-3 {
+    align-items: stretch !important;
+  }
+
+  .addEditClientForm .d-flex.gap-2.justify-content-end {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .addEditClientForm .d-flex.gap-2.justify-content-end .btn,
+  .addEditClientForm #aeAddContactRow,
+  .addEditClientForm #backToClients {
+    width: 100%;
+  }
+}
+
 /* 
 @media (max-width: 1200px) {
   .client-contact-item .col-lg-3,

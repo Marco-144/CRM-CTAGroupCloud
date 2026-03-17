@@ -140,3 +140,19 @@
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 768px) {
+  .service-order-view .d-flex.align-items-center.justify-content-between {
+    align-items: stretch !important;
+  }
+
+  .service-order-view .d-flex.align-items-center.gap-3 {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .service-order-view #backToServiceOrders,
+  .service-order-view #soDetailOpenTicketBtn {
+    width: 100%;
+  }
+}

@@ -19,3 +19,66 @@
 .ventas-view .btn-siguiente {
 	width: 90px;
 }
+
+.ventas-view #salesCards {
+	display: none;
+}
+
+.ventas-view .sale-card {
+	background: #ffffff;
+	border-radius: 14px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+	padding: 14px;
+	margin-bottom: 12px;
+}
+
+.ventas-view .sale-card-title {
+	font-size: 16px;
+	font-weight: 600;
+	margin-bottom: 6px;
+}
+
+.ventas-view .sale-card-meta {
+	font-size: 13px;
+	color: #6b7280;
+	margin-bottom: 4px;
+}
+
+.ventas-view .sale-card-actions,
+.ventas-view .table-sale-actions {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.ventas-view .table-sale-actions .btn,
+.ventas-view .sale-card-actions .btn {
+	margin: 0 !important;
+}
+
+@media (max-width: 992px) {
+	.ventas-view .table-responsive {
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	.ventas-view table {
+		min-width: 840px;
+	}
+
+	.ventas-view #salesSearch {
+		width: 100% !important;
+	}
+}
+
+@media (max-width: 768px) and (orientation: portrait) {
+	.ventas-view .table-responsive {
+		display: none;
+	}
+
+	.ventas-view #salesCards {
+		display: block;
+	}
+}

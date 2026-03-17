@@ -1,4 +1,5 @@
 (() => {
+    // Vista detalle de orden de servicio: metadata, conversación e historial.
     const backBtn = document.getElementById("backToServiceOrders");
     const titleEl = document.getElementById("soDetailTitle");
     const metaEl = document.getElementById("soDetailMeta");
@@ -12,6 +13,7 @@
 
     const showAlert = window.showAppAlert || ((message) => Promise.resolve(window.alert(message)));
 
+    // Regresa al listado de órdenes de servicio.
     function goBack() {
         window.currentServiceOrderDetailId = null;
         if (typeof loadView === "function") {
@@ -160,6 +162,7 @@
         return item?.description || `Cambio de ${label}: ${oldValue} -> ${newValue}`;
     }
 
+    // Renderiza la conversación de respuestas de la orden.
     function renderResponses(items) {
         if (!Array.isArray(items) || !items.length) {
             responsesList.innerHTML = `<div class="text-muted">No hay respuestas todavía.</div>`;
@@ -182,6 +185,7 @@
         }).join("");
     }
 
+    // Renderiza historial de cambios de la orden.
     function renderHistory(items) {
         if (!Array.isArray(items) || !items.length) {
             historyList.innerHTML = `<div class="text-muted">Sin cambios registrados.</div>`;
@@ -212,6 +216,7 @@
         }
     }
 
+    // Carga toda la información de una orden específica.
     async function openDetail(id) {
         const response = await apiFetch(`/api/service-orders/${id}`);
         const payload = await response.json();
@@ -289,6 +294,7 @@
         renderHistory(order.history || []);
     }
 
+    // Envía una nueva respuesta al chat de la orden.
     async function saveResponse(event) {
         event.preventDefault();
 

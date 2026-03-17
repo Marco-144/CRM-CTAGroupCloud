@@ -1,5 +1,7 @@
 (() => {
+    // Vista de órdenes de servicio: listado, filtros, alta/edición y navegación a detalle.
     const table = document.getElementById("serviceOrdersTable");
+    const cards = document.getElementById("serviceOrdersCards");
     const searchInput = document.getElementById("soSearch");
     const statusFilter = document.getElementById("soStatusFilter");
     const priorityFilter = document.getElementById("soPriorityFilter");
@@ -28,9 +30,18 @@
     let clientsCache = [];
     let ticketsCache = [];
     let usersCache = [];
-    const pageSize = 9;
+    const TABLE_PAGE_SIZE = 9;
+    const CARD_PAGE_SIZE = 5;
     let currentPage = 1;
     const paginationContainer = ensurePaginationContainer(table, "serviceOrdersPagination");
+
+    function isMobileVerticalView() {
+        return window.innerWidth <= 768 && window.innerHeight > window.innerWidth;
+    }
+
+    function getCurrentPageSize() {
+        return isMobileVerticalView() ? CARD_PAGE_SIZE : TABLE_PAGE_SIZE;
+    }
 
     function ensurePaginationContainer(tableElement, containerId) {
         let container = document.getElementById(containerId);
@@ -50,6 +61,7 @@
     function renderPagination(totalItems, rowsToRender) {
         if (!paginationContainer) return;
 
+        const pageSize = getCurrentPageSize();
         const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
         if (totalItems <= pageSize) {
@@ -281,12 +293,22 @@
     }
 
     function renderTable(data) {
+        const useCards = isMobileVerticalView();
+        const pageSize = getCurrentPageSize();
+
+        if (cards) {
+            cards.style.display = useCards ? "block" : "none";
+        }
+
         if (!Array.isArray(data) || !data.length) {
             table.innerHTML = `
             <tr>
                 <td colspan="9" class="text-center text-muted py-4">No se encontraron órdenes de servicio</td>
             </tr>
         `;
+            if (cards) {
+                cards.innerHTML = `<div class="text-center text-muted py-4">No se encontraron órdenes de servicio</div>`;
+            }
             renderPagination(0, data || []);
             return;
         }
@@ -298,6 +320,38 @@
 
         const start = (currentPage - 1) * pageSize;
         const paginatedData = data.slice(start, start + pageSize);
+
+        if (useCards) {
+            table.innerHTML = "";
+            cards.innerHTML = paginatedData.map((order) => `
+                <div class="service-order-card">
+                    <div class="service-order-card-title">${escapeHTML(order.order_number || "-")}</div>
+                    <div class="service-order-card-meta">Cliente: ${escapeHTML(order.cliente || order.prospecto || "-")}</div>
+                    <div class="service-order-card-meta">Ticket: ${order.id_ticket
+                    ? `<button class="btn btn-link p-0 text-decoration-none open-ticket" data-ticket-id="${order.id_ticket}">${escapeHTML(order.ticket_number || "-")}</button>`
+                    : "-"}</div>
+                    <div class="service-order-card-meta">Asignado a: ${escapeHTML(order.assigned_user || "-")}</div>
+                    <div class="service-order-card-meta">Tipo de servicio: ${escapeHTML(order.service_type || "-")}</div>
+                    <div class="service-order-card-meta">Prioridad: ${getPriorityBadgeMarkup(order.priority)}</div>
+                    <div class="service-order-card-meta">Estatus: ${getStatusBadgeMarkup(order.status)}</div>
+                    <div class="service-order-card-meta">Fecha: ${formatDate(order.created_at)}</div>
+                    <div class="service-order-card-actions mt-2">
+                        <button class="btn btn-sm btn-outline-primary view-btn" data-id="${order.id_service_order}">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary edit-btn" data-id="${order.id_service_order}">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger delete-btn" data-id="${order.id_service_order}">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join("");
+
+            renderPagination(data.length, data);
+            return;
+        }
 
         table.innerHTML = paginatedData.map((order) => `
         <tr>
@@ -314,15 +368,17 @@
             <td><span class="badge ${getBadgeClassStatus(order.status)}">${escapeHTML(capitalize(order.status))}</span></td>
             <td class="text-end">${formatDate(order.created_at)}</td>
             <td class="text-end">
-                <button class="btn btn-sm btn-outline-primary me-2 view-btn" data-id="${order.id_service_order}">
-                    <i class="bi bi-eye"></i>
-                </button>
-                <button class="btn btn-sm btn-outline-secondary me-2 edit-btn" data-id="${order.id_service_order}">
-                    <i class="bi bi-pencil"></i>
-                </button>
-                <button class="btn btn-sm btn-outline-danger delete-btn" data-id="${order.id_service_order}">
-                    <i class="bi bi-trash"></i>
-                </button>
+                <div class="service-order-row-actions">
+                    <button class="btn btn-sm btn-outline-primary view-btn" data-id="${order.id_service_order}">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary edit-btn" data-id="${order.id_service_order}">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger delete-btn" data-id="${order.id_service_order}">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
             </td>
         </tr>
     `).join("");
@@ -544,7 +600,7 @@
             loadOrders().catch((error) => showAlert(error.message));
         });
 
-        table.addEventListener("click", async (event) => {
+        async function handleServiceOrderActions(event) {
             const viewBtn = event.target.closest(".view-btn");
             const editBtn = event.target.closest(".edit-btn");
             const deleteBtn = event.target.closest(".delete-btn");
@@ -577,6 +633,15 @@
             } catch (error) {
                 await showAlert(error.message);
             }
+        }
+
+        table.addEventListener("click", handleServiceOrderActions);
+        cards?.addEventListener("click", handleServiceOrderActions);
+
+        window.addEventListener("app:resize", () => renderTable(ordersCache));
+        window.addEventListener("resize", () => renderTable(ordersCache));
+        window.addEventListener("orientationchange", () => {
+            setTimeout(() => renderTable(ordersCache), 200);
         });
 
         Promise.all([loadProspects(), loadOrders()]).catch(async (error) => {
