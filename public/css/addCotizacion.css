@@ -130,3 +130,40 @@
 .addCotizacionForm .card + .card {
   margin-top: 16px;
 }
+
+@media (max-width: 992px) {
+  .addCotizacionForm .row.g-3 > [class*="col-md"] {
+    width: 100%;
+  }
+
+  .addCotizacionForm .btn-outline-primary {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .addCotizacionForm h4 {
+    font-size: 20px;
+  }
+
+  .addCotizacionForm .card {
+    border-radius: 14px;
+  }
+
+  .addCotizacionForm #conceptosContainer .row.g-2 {
+    row-gap: 10px;
+  }
+
+  .addCotizacionForm #conceptosContainer .btnEliminar {
+    width: 100%;
+  }
+
+  .addCotizacionForm .add-cotizacion-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .addCotizacionForm .add-cotizacion-actions .btn {
+    width: 100%;
+  }
+}

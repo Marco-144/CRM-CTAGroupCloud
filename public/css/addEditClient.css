@@ -1,0 +1,112 @@
+.add-edit-client-view {
+  width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+.addEditClientForm {
+  width: 100%;
+  max-width: 100%;
+  font-family: 'Inter', sans-serif;
+  overflow-x: hidden;
+}
+
+.addEditClientForm * {
+  box-sizing: border-box;
+}
+
+.add-edit-client-view,
+.addEditClientForm,
+.addEditClientForm .row,
+.addEditClientForm [class*="col-"] {
+  min-width: 0;
+}
+
+.addEditClientForm .card {
+  background: #ffffff;
+  border-radius: 18px;
+  border: 1px solid #f1f1f1;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.addEditClientForm .form-label {
+  font-size: 16px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 4px;
+}
+
+.addEditClientForm .form-control,
+.addEditClientForm .form-select {
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  padding: 8px 12px;
+  font-size: 14px;
+  max-width: 100%;
+}
+
+.addEditClientForm .form-control:focus,
+.addEditClientForm .form-select:focus {
+  border-color: #6c5ce7;
+  box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.15);
+}
+
+.addEditClientForm .row,
+.addEditClientForm [class*="col-"] {
+  min-width: 0;
+}
+
+.addEditClientForm .client-contact-item {
+  overflow: hidden;
+}
+
+.addEditClientForm .doc-link {
+  font-size: 0.875rem;
+}
+
+.addEditClientForm .btn-primary {
+  background-color: #6c5ce7;
+  border: none;
+  font-weight: 500;
+  border-radius: 12px;
+}
+
+.addEditClientForm .btn-primary:hover {
+  background-color: #5a4bd1;
+}
+
+@media (max-width: 992px) {
+  .addEditClientForm .row.g-3 > [class*="col-md"],
+  .addEditClientForm .row.g-2 > [class*="col-lg"] {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .addEditClientForm .d-flex.align-items-center.gap-3 {
+    align-items: stretch !important;
+  }
+
+  .addEditClientForm .d-flex.gap-2.justify-content-end {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .addEditClientForm .d-flex.gap-2.justify-content-end .btn,
+  .addEditClientForm #aeAddContactRow,
+  .addEditClientForm #backToClients {
+    width: 100%;
+  }
+}
+
+/* 
+@media (max-width: 1200px) {
+  .client-contact-item .col-lg-3,
+  .client-contact-item .col-lg-2,
+  .client-contact-item .col-lg-1,
+  .client-contact-item .col-lg-12 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+} */

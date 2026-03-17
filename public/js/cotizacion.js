@@ -1,6 +1,7 @@
 (() => {
 
     const cotizacionesTable = document.getElementById("cotizacionesTable");
+    const cotizacionesCards = document.getElementById("cotizacionesCards");
     const totalCotizaciones = document.getElementById("totalCotizaciones");
     const sumTotalCotizaciones = document.getElementById("sumTotalCotizaciones");
     const sumCantidadCotizaciones = document.getElementById("sumCantidadCotizaciones");
@@ -20,9 +21,18 @@
     let filteredData = [];
     let currentViewId = null;
     let saleModalRefs = null;
-    const pageSize = 7;
+    const TABLE_PAGE_SIZE = 7;
+    const CARD_PAGE_SIZE = 5;
     let currentPage = 1;
     const paginationContainer = ensurePaginationContainer(cotizacionesTable, "cotizacionesPagination");
+
+    function isMobileVerticalView() {
+        return window.innerWidth <= 768 && window.innerHeight > window.innerWidth;
+    }
+
+    function getCurrentPageSize() {
+        return isMobileVerticalView() ? CARD_PAGE_SIZE : TABLE_PAGE_SIZE;
+    }
 
     function ensurePaginationContainer(tableElement, containerId) {
         let container = document.getElementById(containerId);
@@ -42,6 +52,7 @@
     function renderPagination(totalItems) {
         if (!paginationContainer) return;
 
+        const pageSize = getCurrentPageSize();
         const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
         if (totalItems <= pageSize) {
@@ -71,6 +82,68 @@
                 renderTable(filteredData);
             }
         });
+    }
+
+    function renderCards(paginatedData) {
+        if (!cotizacionesCards) return;
+
+        cotizacionesCards.innerHTML = paginatedData.map((item) => {
+            const folio = String(item.Folio ?? item.folio ?? 0).padStart(5, "0");
+            const isInactive = item.status === "Inactivo";
+            const isCompleted = item.status === "Completada";
+            const isCancelled = item.status === "Cancelada";
+            const statusBadgeClass = isCompleted
+                ? "bg-primary"
+                : isCancelled
+                    ? "bg-danger"
+                    : isInactive
+                        ? "bg-secondary"
+                        : "bg-success";
+            const isPdfDisabled = isInactive || isCancelled;
+
+            return `
+                <div class="cotizacion-card">
+                    <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+                        <div>
+                            <div class="cotizacion-card-title">${item.prospecto || "Sin prospecto"}</div>
+                            <div class="cotizacion-card-meta">Folio: ${folio}</div>
+                            <div class="cotizacion-card-meta">Fecha: ${formatDate(item.updated_at)}</div>
+                        </div>
+                        <div>
+                            ${isCompleted
+                    ? `<span class="badge bg-primary">${item.status || "Activo"}</span>`
+                    : `<button class="btn btn-sm p-0 border-0 bg-transparent status-inline-btn" data-id="${item.id_cotizacion}" title="Cambiar estatus">
+                                    <span class="badge ${statusBadgeClass}">${item.status || "Activo"}</span>
+                                </button>`}
+                        </div>
+                    </div>
+
+                    <div class="mt-2 cotizacion-card-meta">Cantidad: ${item.total_cantidad || 0}</div>
+                    <div class="cotizacion-card-meta">Subtotal: ${formatMoney(item.subtotal, item.moneda || "MXN")}</div>
+                    <div class="cotizacion-card-amount">Total: ${formatMoney(item.total, item.moneda || "MXN")}</div>
+
+                    <div class="cotizacion-card-actions">
+                        <button class="btn btn-sm btn-outline-secondary detail-btn" data-id="${item.id_cotizacion}">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary edit-btn" data-id="${item.id_cotizacion}">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger delete-btn" data-id="${item.id_cotizacion}">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary pdf-btn ${isPdfDisabled ? "disabled" : ""}"
+                            data-id="${item.id_cotizacion}"
+                            ${isPdfDisabled ? "disabled title='Cotizacion inactiva/cancelada: PDF no disponible'" : ""}>
+                            <i class="bi bi-filetype-pdf"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-success complete-sale-btn" data-id="${item.id_cotizacion}">
+                            <i class="bi bi-bag-check"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join("");
     }
 
     function getSaleModalRefs() {
@@ -465,6 +538,13 @@
     ============================ */
     function renderTable(data) {
 
+        const isMobileCards = isMobileVerticalView();
+        const pageSize = getCurrentPageSize();
+
+        if (cotizacionesCards) {
+            cotizacionesCards.style.display = isMobileCards ? "block" : "none";
+        }
+
         if (!data.length) {
             cotizacionesTable.innerHTML = `
             <tr>
@@ -473,6 +553,13 @@
                 </td>
             </tr>
         `;
+            if (cotizacionesCards) {
+                cotizacionesCards.innerHTML = `
+                    <div class="text-center text-muted py-4">
+                        No hay cotizaciones registradas
+                    </div>
+                `;
+            }
             renderPagination(0);
             return;
         }
@@ -484,6 +571,13 @@
 
         const start = (currentPage - 1) * pageSize;
         const paginatedData = data.slice(start, start + pageSize);
+
+        if (isMobileCards) {
+            cotizacionesTable.innerHTML = "";
+            renderCards(paginatedData);
+            renderPagination(data.length);
+            return;
+        }
 
         cotizacionesTable.innerHTML = paginatedData.map(item => {
             const folio = String(item.Folio ?? item.folio ?? 0).padStart(5, "0");
@@ -517,23 +611,23 @@
             <td class="fw-semibold text-center">${formatMoney(item.total, item.moneda || "MXN")}</td>
             <td class="text-end">${formatDate(item.updated_at)}</td>
             <td class="text-end">
-
-                <button class="btn btn-sm btn-outline-secondary me-2 detail-btn"
+                <div class="row-actions">
+                <button class="btn btn-sm btn-outline-secondary detail-btn"
                     data-id="${item.id_cotizacion}">
                     <i class="bi bi-eye"></i>
                 </button>
 
-                <button class="btn btn-sm btn-outline-secondary me-2 edit-btn"
+                <button class="btn btn-sm btn-outline-secondary edit-btn"
                     data-id="${item.id_cotizacion}">
                     <i class="bi bi-pencil"></i>
                 </button>
 
-                <button class="btn btn-sm btn-outline-danger me-2 delete-btn"
+                <button class="btn btn-sm btn-outline-danger delete-btn"
                     data-id="${item.id_cotizacion}">
                     <i class="bi bi-trash"></i>
                 </button>
 
-                <div class="vr me-2 "></div>
+                <div class="vr"></div>
 
                 <button class="btn btn-sm btn-outline-primary pdf-btn ${isPdfDisabled ? "disabled" : ""}"
                     data-id="${item.id_cotizacion}"
@@ -541,10 +635,11 @@
                     <i class="bi bi-filetype-pdf"></i>
                 </button>
 
-                <button class="btn btn-sm btn-outline-success me-2 complete-sale-btn"
+                <button class="btn btn-sm btn-outline-success complete-sale-btn"
                     data-id="${item.id_cotizacion}">
                     <i class="bi bi-bag-check"></i>
                 </button>
+                </div>
 
             </td>
         </tr>
@@ -579,7 +674,7 @@
     /* ============================
        EVENTOS TABLA
     ============================ */
-    cotizacionesTable.addEventListener("click", async (e) => {
+    async function handleCotizacionAction(e) {
 
         const statusInlineBtn = e.target.closest(".status-inline-btn");
         const detailBtn = e.target.closest(".detail-btn");
@@ -620,7 +715,10 @@
             downloadPDF(pdfBtn.dataset.id);
             return;
         }
-    });
+    }
+
+    cotizacionesTable.addEventListener("click", handleCotizacionAction);
+    cotizacionesCards?.addEventListener("click", handleCotizacionAction);
 
     /* ============================
        MODAL VER
@@ -717,7 +815,7 @@
 
         viewModal.show();
 
-        document.getElementById("editCotizacionBtn").addEventListener("click", () => {
+        document.getElementById("editCotizacionBtn")?.addEventListener("click", () => {
             viewModal.hide();
             goToEdit(cot.id_cotizacion);
         });
@@ -910,6 +1008,18 @@
             minimumFractionDigits: 2
         }).format(amount || 0);
     }
+
+    window.addEventListener("app:resize", () => {
+        renderTable(filteredData);
+    });
+
+    window.addEventListener("resize", () => {
+        renderTable(filteredData);
+    });
+
+    window.addEventListener("orientationchange", () => {
+        setTimeout(() => renderTable(filteredData), 200);
+    });
 
     loadCotizaciones();
 

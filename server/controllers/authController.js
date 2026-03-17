@@ -15,15 +15,17 @@ exports.login = async (req, res) => {
 
         const [rows] = await db.query(
             `SELECT
-                 id,
-                 username,
-                 name,
-                 password_hash,
-                 id_department,
-                 id_role,
-                 token_version
-             FROM users
-             WHERE username = ?
+                 u.id,
+                 u.username,
+                 u.name,
+                 u.password_hash,
+                 u.id_department,
+                 u.id_role,
+                 u.token_version,
+                 COALESCE(d.name, '') AS department
+             FROM users u
+             LEFT JOIN departments d ON d.id_department = u.id_department
+             WHERE u.username = ?
              LIMIT 1`,
             [user],
         );
@@ -45,6 +47,7 @@ exports.login = async (req, res) => {
                 username: dbUser.username,
                 name: dbUser.name,
                 id_department: dbUser.id_department,
+                department: dbUser.department || "",
                 id_role: dbUser.id_role,
                 token_version: dbUser.token_version || 0,
             },

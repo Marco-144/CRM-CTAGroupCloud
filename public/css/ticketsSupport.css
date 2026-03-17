@@ -51,9 +51,41 @@
 	color: #6c757d;
 }
 
-.ticket-suport-view .btn-anterior,
-.ticket-suport-view .btn-siguiente {
+.ticket-support-view .btn-anterior,
+.ticket-support-view .btn-siguiente {
 	width: 90px;
+}
+
+.ticket-support-view #ticketsCards {
+	display: none;
+}
+
+.ticket-support-view .ticket-card {
+	background: #ffffff;
+	border-radius: 14px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+	padding: 14px;
+	margin-bottom: 12px;
+}
+
+.ticket-support-view .ticket-card-title {
+	font-size: 16px;
+	font-weight: 600;
+	margin-bottom: 6px;
+}
+
+.ticket-support-view .ticket-card-meta {
+	font-size: 13px;
+	color: #6b7280;
+	margin-bottom: 4px;
+}
+
+.ticket-support-view .ticket-card-actions {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 8px;
+	margin-top: 10px;
 }
 
 @media (max-width: 991px) {
@@ -68,5 +100,37 @@
 
 	#ticketServiceOrdersList {
 		max-height: 22vh;
+	}
+
+	.ticket-support-view .table-responsive {
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	.ticket-support-view table {
+		min-width: 980px;
+	}
+
+	.ticket-support-view .d-flex.gap-2.flex-wrap {
+		width: 100%;
+	}
+
+	.ticket-support-view .d-flex.gap-2.flex-wrap .form-control,
+	.ticket-support-view .d-flex.gap-2.flex-wrap .form-select {
+		width: 100% !important;
+	}
+}
+
+@media (max-width: 768px) and (orientation: portrait) {
+	.ticket-support-view .table-responsive {
+		display: none;
+	}
+
+	.ticket-support-view #ticketsCards {
+		display: block;
+	}
+
+	.ticket-support-view #openAddTicket {
+		width: 100%;
 	}
 }

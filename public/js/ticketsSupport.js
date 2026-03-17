@@ -1,5 +1,7 @@
 (() => {
+	// Vista de tickets: listado, filtros, conversación y creación/edición.
 	const table = document.getElementById("ticketsTable");
+	const cards = document.getElementById("ticketsCards");
 	const openAddBtn = document.getElementById("openAddTicket");
 	const searchInput = document.getElementById("ticketsSearch");
 	const statusFilter = document.getElementById("ticketsStatusFilter");
@@ -41,9 +43,18 @@
 	let clientsCache = [];
 	let departmentsCache = [];
 	let usersCache = [];
-	const pageSize = 9;
+	const TABLE_PAGE_SIZE = 9;
+	const CARD_PAGE_SIZE = 5;
 	let currentPage = 1;
 	const paginationContainer = ensurePaginationContainer(table, "ticketsPagination");
+
+	function isMobileVerticalView() {
+		return window.innerWidth <= 768 && window.innerHeight > window.innerWidth;
+	}
+
+	function getCurrentPageSize() {
+		return isMobileVerticalView() ? CARD_PAGE_SIZE : TABLE_PAGE_SIZE;
+	}
 
 	function ensurePaginationContainer(tableElement, containerId) {
 		let container = document.getElementById(containerId);
@@ -63,6 +74,7 @@
 	function renderPagination(totalItems, rowsToRender) {
 		if (!paginationContainer) return;
 
+		const pageSize = getCurrentPageSize();
 		const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
 		if (totalItems <= pageSize) {
@@ -292,12 +304,22 @@
 	}
 
 	function renderTable(data) {
+		const useCards = isMobileVerticalView();
+		const pageSize = getCurrentPageSize();
+
+		if (cards) {
+			cards.style.display = useCards ? "block" : "none";
+		}
+
 		if (!Array.isArray(data) || !data.length) {
 			table.innerHTML = `
 			<tr>
 				<td colspan="9" class="text-center text-muted py-4">No se encontraron tickets</td>
 			</tr>
 		`;
+			if (cards) {
+				cards.innerHTML = `<div class="text-center text-muted py-4">No se encontraron tickets</div>`;
+			}
 			renderPagination(0, data || []);
 			return;
 		}
@@ -309,6 +331,33 @@
 
 		const start = (currentPage - 1) * pageSize;
 		const paginatedData = data.slice(start, start + pageSize);
+
+		if (useCards) {
+			table.innerHTML = "";
+			cards.innerHTML = paginatedData.map((ticket) => `
+				<div class="ticket-card">
+					<div class="ticket-card-title">${escapeHTML(ticket.ticket_number || "-")}</div>
+					<div class="ticket-card-meta">Usuario: ${escapeHTML(ticket.created_by || "-")}</div>
+					<div class="ticket-card-meta">Asunto: ${escapeHTML(ticket.subject || "-")}</div>
+					<div class="ticket-card-meta">Prioridad: <span class="badge ${getPriorityBadge(ticket.priority)}">${escapeHTML(capitalize(ticket.priority))}</span></div>
+					<div class="ticket-card-meta">Estado: <span class="badge ${getStatusBadge(ticket.status)}">${escapeHTML(capitalize(ticket.status))}</span></div>
+					<div class="ticket-card-meta">Ordenes: ${Number(ticket.total_service_orders || 0)}</div>
+					<div class="ticket-card-meta">Fecha: ${formatDate(ticket.created_at)}</div>
+					<div class="ticket-card-meta">Asignado a: ${escapeHTML(ticket.assigned_user || "-")}</div>
+					<div class="ticket-card-actions">
+						<button class="btn btn-sm btn-outline-secondary edit-ticket" data-id="${ticket.id_ticket}">
+							<i class="bi bi-pencil"></i>
+						</button>
+						<button class="btn btn-sm btn-outline-primary conversation-ticket" data-id="${ticket.id_ticket}">
+							<i class="bi bi-chat-left-text"></i>
+						</button>
+					</div>
+				</div>
+			`).join("");
+
+			renderPagination(data.length, data);
+			return;
+		}
 
 		table.innerHTML = paginatedData.map((ticket) => `
 		<tr>
@@ -325,9 +374,14 @@
 			<td>${formatDate(ticket.created_at)}</td>
 			<td>${escapeHTML(ticket.assigned_user || "-")}</td>
 			<td class="text-end">
-				<button class="btn btn-sm btn-outline-primary conversation-ticket" data-id="${ticket.id_ticket}">
-					<i class="bi bi-chat-left-text"></i>
-				</button>
+				<div class="d-flex justify-content-center align-items-center gap-2">
+					<button class="btn btn-sm btn-outline-secondary edit-ticket" data-id="${ticket.id_ticket}">
+						<i class="bi bi-pencil"></i>
+					</button>
+					<button class="btn btn-sm btn-outline-primary conversation-ticket" data-id="${ticket.id_ticket}">
+						<i class="bi bi-chat-left-text"></i>
+					</button>
+				</div>
 			</td>
 		</tr>
 	`).join("");
@@ -684,7 +738,7 @@
 			loadTickets().catch((error) => showAlert(error.message));
 		});
 
-		table.addEventListener("click", async (event) => {
+		async function handleTicketActions(event) {
 			const editBtn = event.target.closest(".edit-ticket");
 			const conversationBtn = event.target.closest(".conversation-ticket");
 
@@ -706,7 +760,10 @@
 			} catch (error) {
 				await showAlert(error.message);
 			}
-		});
+		}
+
+		table.addEventListener("click", handleTicketActions);
+		cards?.addEventListener("click", handleTicketActions);
 
 		responseForm?.addEventListener("submit", async (event) => {
 			try {
@@ -722,6 +779,12 @@
 			} catch (error) {
 				await showAlert(error.message);
 			}
+		});
+
+		window.addEventListener("app:resize", () => renderTable(ticketsCache));
+		window.addEventListener("resize", () => renderTable(ticketsCache));
+		window.addEventListener("orientationchange", () => {
+			setTimeout(() => renderTable(ticketsCache), 200);
 		});
 
 		Promise.all([loadCatalogs(), loadTickets()]).then(async () => {

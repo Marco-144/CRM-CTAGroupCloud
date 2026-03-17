@@ -1,0 +1,52 @@
+<div class="cotizacion-view service-order-view">
+    <div class="d-flex align-items-center justify-content-between gap-3 mb-4 flex-wrap">
+        <div class="d-flex align-items-center gap-3">
+            <button class="btn btn-light d-lg-none sidebar-mobile-toggle" id="mobileMenuBtn" type="button"
+                aria-label="Abrir menú lateral">
+                <i class="bi bi-list fs-4"></i>
+            </button>
+            <button class="btn btn-outline-secondary rounded-3" id="backToServiceOrders">
+                <i class="bi bi-arrow-left"></i> Regresar
+            </button>
+            <h4 class="fw-semibold mb-0" id="soDetailTitle">Detalle de Orden de Servicio</h4>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-primary d-none" id="soDetailOpenTicketBtn">
+            <i class="bi bi-chat-left-text"></i> Abrir ticket relacionado
+        </button>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 p-4">
+        <div class="mb-3">
+            <h5 class="mb-1">Conversación y seguimiento</h5>
+            <small class="text-muted">Consulta la información de la orden, respuestas y cambios registrados</small>
+        </div>
+
+        <div class="service-order-conversation-layout">
+            <div class="service-order-conversation-main">
+                <div class="service-order-meta mb-3" id="soDetailMeta"></div>
+                <h6 class="fw-semibold mb-2">Chat de la orden</h6>
+                <div class="service-order-response-list" id="soDetailResponsesList"></div>
+                <form id="soDetailResponseForm" class="service-order-response-form mt-3">
+                    <input type="hidden" id="soDetailOrderId">
+                    <label class="form-label">Responder</label>
+                    <textarea class="form-control" id="soDetailResponseMessage" rows="3"
+                        placeholder="Escribe tu mensaje..."></textarea>
+                    <div class="mt-2">
+                        <input type="file" class="form-control" id="soDetailResponseAttachment"
+                            accept="image/*,application/pdf" multiple>
+                        <small class="text-muted">Opcional: una o varias imagenes/PDF (max 8MB por archivo)</small>
+                    </div>
+                    <div class="d-flex justify-content-end mt-2">
+                        <button type="submit" class="btn btn-primary">Enviar respuesta</button>
+                    </div>
+                </form>
+            </div>
+
+            <aside class="service-order-history-panel d-flex flex-column">
+                <h6 class="fw-semibold mb-3">Historial de cambios</h6>
+                <div id="soDetailHistoryList" class="service-order-history-list flex-grow-1 overflow-y-auto"
+                    style="min-height: 0;"></div>
+            </aside>
+        </div>
+    </div>
+</div>

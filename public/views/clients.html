@@ -1,6 +1,15 @@
 <div class="clients-view">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="fw-semibold mb-0">Clientes</h4>
+    <div class="d-flex justify-content-between align-items-center mb-4 gap-2 flex-wrap">
+        <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-light d-lg-none sidebar-mobile-toggle" id="mobileMenuBtn" type="button"
+                aria-label="Abrir menú lateral">
+                <i class="bi bi-list fs-4"></i>
+            </button>
+            <h4 class="fw-semibold mb-0">Clientes</h4>
+        </div>
+        <button class="btn btn-primary rounded-3" id="openAddClient">
+            <i class="bi bi-plus-lg"></i> Agregar Cliente
+        </button>
     </div>
 
     <div class="card border-0 shadow-sm rounded-4 p-4">
@@ -14,92 +23,23 @@
                 style="width: 260px;">
         </div>
 
-        <table class="table align-middle mb-0">
-            <thead>
-                <tr>
-                    <th>Empresa</th>
-                    <th>Contacto</th>
-                    <th>RFC</th>
-                    <th>Email fiscal</th>
-                    <th>Constancia</th>
-                    <th class="text-end">Acciones</th>
-                </tr>
-            </thead>
-            <tbody id="clientsTable"></tbody>
-        </table>
-    </div>
-
-    <div class="modal fade" id="clientProfileModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content rounded-4">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-semibold">Perfil Fiscal del Cliente</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-
-                <form id="clientProfileForm" enctype="multipart/form-data">
-                    <div class="modal-body">
-                        <input type="hidden" id="clientProspectId">
-
-                        <div class="row g-3">
-                            <div class="col-md-4">
-                                <label class="form-label">RFC</label>
-                                <input type="text" class="form-control" id="clientRfc" maxlength="20">
-                            </div>
-                            <div class="col-md-8">
-                                <label class="form-label">Razon social</label>
-                                <input type="text" class="form-control" id="clientFiscalName">
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label">Regimen fiscal</label>
-                                <input type="text" class="form-control" id="clientFiscalRegime">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Email de facturacion</label>
-                                <input type="email" class="form-control" id="clientBillingEmail">
-                            </div>
-
-                            <div class="col-md-12">
-                                <label class="form-label">Direccion fiscal</label>
-                                <input type="text" class="form-control" id="clientAddress">
-                            </div>
-
-                            <div class="col-md-4">
-                                <label class="form-label">Ciudad</label>
-                                <input type="text" class="form-control" id="clientCity">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Estado</label>
-                                <input type="text" class="form-control" id="clientState">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Codigo postal</label>
-                                <input type="text" class="form-control" id="clientPostalCode">
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label">Pais</label>
-                                <input type="text" class="form-control" id="clientCountry" value="Mexico">
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label">Constancia de situacion fiscal (PDF)</label>
-                                <input type="file" class="form-control" id="clientFiscalDoc" accept="application/pdf">
-                                <a href="#" class="doc-link d-none" id="currentFiscalDocLink" target="_blank"
-                                    rel="noopener">Ver documento actual</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-outline-secondary"
-                            data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">Guardar perfil</button>
-                    </div>
-                </form>
-            </div>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Empresa</th>
+                        <th>Contacto</th>
+                        <th>RFC</th>
+                        <th>Email fiscal</th>
+                        <th>Constancia</th>
+                        <th class="text-end">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="clientsTable"></tbody>
+            </table>
         </div>
+
+        <div id="clientsCards" class="mt-3"></div>
     </div>
 
     <div class="modal fade" id="clientDetailModal" tabindex="-1">

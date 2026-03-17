@@ -104,7 +104,10 @@ async function refreshTicketHasServiceOrder(connection, ticketId) {
 
 exports.getServiceOrders = async (req, res) => {
     try {
-        const { search = "", status = "", priority = "", id_ticket = "" } = req.query;
+        const { search = "", status = "", priority = "", id_ticket = "", date_from = "", date_to = "" } = req.query;
+
+        const isAdmin = String(req.auth?.department || "").toLowerCase() === "administrador";
+        const authUserId = Number(req.auth?.sub || 0);
 
         let query = `
             SELECT
@@ -163,6 +166,21 @@ exports.getServiceOrders = async (req, res) => {
         if (id_ticket) {
             query += " AND so.id_ticket = ?";
             params.push(Number(id_ticket));
+        }
+
+        if (!isAdmin && authUserId) {
+            query += " AND so.id_assigned_user = ?";
+            params.push(authUserId);
+        }
+
+        if (date_from) {
+            query += " AND DATE(so.created_at) >= ?";
+            params.push(date_from);
+        }
+
+        if (date_to) {
+            query += " AND DATE(so.created_at) <= ?";
+            params.push(date_to);
         }
 
         query += " ORDER BY so.id_service_order DESC";

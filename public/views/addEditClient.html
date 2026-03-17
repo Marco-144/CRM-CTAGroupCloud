@@ -1,0 +1,121 @@
+<div class="add-edit-client-view">
+    <form id="addEditClientForm" class="addEditClientForm" enctype="multipart/form-data" novalidate>
+        <input type="hidden" id="aeClientId">
+
+        <div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
+            <button class="btn btn-light d-lg-none sidebar-mobile-toggle" id="mobileMenuBtn" type="button"
+                aria-label="Abrir menú lateral">
+                <i class="bi bi-list fs-4"></i>
+            </button>
+            <button class="btn btn-outline-secondary rounded-3" id="backToClients" type="button">
+                <i class="bi bi-arrow-left"></i> Regresar
+            </button>
+            <h4 class="fw-semibold mb-0" id="addEditClientTitle">Agregar Cliente</h4>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+            <h5 class="mb-1">Perfil del cliente</h5>
+            <small class="text-muted">Completa la información general, fiscal y contactos del cliente</small>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+            <h6 class="fw-semibold mb-3">Datos del cliente</h6>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Nombre</label>
+                    <input type="text" class="form-control" id="aeClientName" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Empresa</label>
+                    <input type="text" class="form-control" id="aeClientCompany" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Teléfono</label>
+                    <input type="text" class="form-control" id="aeClientPhone">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Correo</label>
+                    <input type="email" class="form-control" id="aeClientEmail">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Prioridad</label>
+                    <select class="form-select" id="aeClientPriority" required>
+                        <option value="Alta">Alta</option>
+                        <option value="Media" selected>Media</option>
+                        <option value="Baja">Baja</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Estado</label>
+                    <select class="form-select" id="aeClientStatus" required>
+                        <option value="Activo" selected>Activo</option>
+                        <option value="Inactivo">Inactivo</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+            <h6 class="fw-semibold mb-3">Perfil fiscal</h6>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">RFC</label>
+                    <input type="text" class="form-control" id="aeClientRfc" maxlength="20">
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label">Razón social</label>
+                    <input type="text" class="form-control" id="aeClientFiscalName">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Régimen fiscal</label>
+                    <input type="text" class="form-control" id="aeClientFiscalRegime">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Email de facturación</label>
+                    <input type="email" class="form-control" id="aeClientBillingEmail">
+                </div>
+                <div class="col-md-12">
+                    <label class="form-label">Dirección fiscal</label>
+                    <input type="text" class="form-control" id="aeClientAddress">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Ciudad</label>
+                    <input type="text" class="form-control" id="aeClientCity">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Estado</label>
+                    <input type="text" class="form-control" id="aeClientState">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Código postal</label>
+                    <input type="text" class="form-control" id="aeClientPostalCode">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">País</label>
+                    <input type="text" class="form-control" id="aeClientCountry" value="Mexico">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Constancia de situación fiscal (PDF)</label>
+                    <input type="file" class="form-control" id="aeClientFiscalDoc" accept="application/pdf">
+                    <a href="#" class="doc-link d-none mt-1 d-block" id="aeCurrentFiscalDocLink" target="_blank"
+                        rel="noopener">Ver documento actual</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-semibold mb-0">Contactos del cliente</h6>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="aeAddContactRow">
+                    <i class="bi bi-plus-lg"></i> Añadir contacto
+                </button>
+            </div>
+            <div id="aeClientContactsList" class="d-flex flex-column gap-2"></div>
+        </div>
+
+        <div class="d-flex gap-2 justify-content-end">
+            <button type="button" class="btn btn-outline-secondary" id="aeBackBtn">Cancelar</button>
+            <button type="submit" class="btn btn-primary" id="aeSubmitBtn">Guardar cliente</button>
+        </div>
+    </form>
+</div>

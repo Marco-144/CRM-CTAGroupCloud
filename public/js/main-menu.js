@@ -1,5 +1,6 @@
 const sidebar = document.getElementById('sidebar');
 const toggle = document.getElementById('toggleSidebar');
+const overlay = document.getElementById('sidebarOverlay');
 const commercialCollapse = document.getElementById('commercialSub');
 const accountCollapse = document.getElementById('accountingSub');
 const projectsCollapse = document.getElementById('projectsSub');
@@ -159,6 +160,21 @@ window.showAppConfirm = function (message, title = 'Confirmar acción') {
 // Accion de despliegue del sidebar
 toggle.addEventListener('click', function () {
 
+    /* MOBILE */
+    if (isMobileVertical()) {
+
+        if (sidebar.classList.contains("mobile-open")) {
+            sidebar.classList.remove("mobile-open");
+            overlay.classList.remove("active");
+        } else {
+            sidebar.classList.add("mobile-open");
+            overlay.classList.add("active");
+        }
+
+        return;
+    }
+
+    /* DESKTOP */
     const logoImage = document.getElementById('logoImage');
 
     logoImage.style.opacity = 0;
@@ -168,22 +184,29 @@ toggle.addEventListener('click', function () {
         sidebar.classList.toggle('collapsed');
 
         if (sidebar.classList.contains('collapsed')) {
+
             logoImage.src = 'assets/CTA-Icon.png';
 
             const collapsebs = bootstrap.Collapse.getInstance(commercialCollapse);
             const collapsebs2 = bootstrap.Collapse.getInstance(accountCollapse);
             const collapsebs3 = bootstrap.Collapse.getInstance(projectsCollapse);
+
             if (collapsebs || collapsebs2 || collapsebs3) {
-                collapsebs.hide();
-                collapsebs2.hide();
-                collapsebs3.hide();
+                collapsebs?.hide();
+                collapsebs2?.hide();
+                collapsebs3?.hide();
             }
 
         } else {
+
             logoImage.src = 'assets/LOGO HORIZONTAL-02.png';
+
         }
+
         logoImage.style.opacity = 1;
+
     }, 300);
+
 });
 
 //Funcion para actualizar el mensaje de bienvenida con el nombre del usuario logueado.
@@ -283,6 +306,16 @@ function loadView(view, cssFile = null, jsFile = null) {
             }
 
             document.getElementById('content-area').innerHTML = data;
+
+            /* cerrar sidebar en mobile al cambiar de vista */
+            if (window.innerWidth <= 768) {
+
+                sidebar.classList.remove("mobile-open");
+
+                const overlay = document.getElementById("sidebarOverlay");
+                overlay.classList.remove("active");
+
+            }
             updateWelcomeMessage();
 
             // Remover CSS anterior de vista
@@ -309,6 +342,8 @@ function loadView(view, cssFile = null, jsFile = null) {
                 script.id = 'dynamic-js';
                 document.body.appendChild(script);
             }
+
+
         })
         .catch(error => {
             if (requestId !== latestViewRequestId) {
@@ -316,4 +351,18 @@ function loadView(view, cssFile = null, jsFile = null) {
             }
             document.getElementById('content-area').innerHTML = '<h4>Error al cargar la vista</h4>';
         });
+
+    if (window.innerWidth <= 768) {
+        sidebar.classList.remove('mobile-open');
+        overlay.classList.remove('active');
+    }
+
+    window.dispatchEvent(new Event("app:resize"));
+
 }
+
+/* Sidebar toggle on small screens */
+function isMobileVertical() {
+    return window.innerWidth <= 768 && window.innerHeight > window.innerWidth;
+}
+
