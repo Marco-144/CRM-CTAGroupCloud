@@ -22,20 +22,23 @@
             <div class="d-flex gap-2 flex-wrap">
                 <input type="text" class="form-control" id="soSearch" placeholder="Buscar orden..."
                     style="width: 220px;">
-                <select class="form-select" id="soStatusFilter" style="width: 180px;">
-                    <option value="">Estatus: Todos</option>
-                    <option value="pendiente">Pendiente</option>
-                    <option value="activa">Activa</option>
-                    <option value="completada">Completada</option>
-                    <option value="cancelada">Cancelada</option>
+                <select class="form-select" id="soCombinedFilter" style="width: 200px;">
+                    <option value="">Filtrar por...</option>
+                    <optgroup label="Estatus">
+                        <option value="status:pendiente">Pendiente</option>
+                        <option value="status:activa">Activa</option>
+                        <option value="status:completada">Completada</option>
+                        <option value="status:cancelada">Cancelada</option>
+                    </optgroup>
+                    <optgroup label="Prioridad">
+                        <option value="priority:bajo">Bajo</option>
+                        <option value="priority:medio">Medio</option>
+                        <option value="priority:alto">Alto</option>
+                        <option value="priority:urgente">Urgente</option>
+                    </optgroup>
                 </select>
-                <select class="form-select" id="soPriorityFilter" style="width: 180px;">
-                    <option value="">Prioridad: Todas</option>
-                    <option value="bajo">Bajo</option>
-                    <option value="medio">Medio</option>
-                    <option value="alto">Alto</option>
-                    <option value="urgente">Urgente</option>
-                </select>
+                <input type="date" class="form-control" id="soDateFrom" style="width: 160px;" title="Fecha desde">
+                <input type="date" class="form-control" id="soDateTo" style="width: 160px;" title="Fecha hasta">
             </div>
         </div>
 

@@ -3,8 +3,9 @@
     const table = document.getElementById("serviceOrdersTable");
     const cards = document.getElementById("serviceOrdersCards");
     const searchInput = document.getElementById("soSearch");
-    const statusFilter = document.getElementById("soStatusFilter");
-    const priorityFilter = document.getElementById("soPriorityFilter");
+    const combinedFilter = document.getElementById("soCombinedFilter");
+    const dateFrom = document.getElementById("soDateFrom");
+    const dateTo = document.getElementById("soDateTo");
     const openAddBtn = document.getElementById("openAddSO");
 
     const form = document.getElementById("serviceOrderForm");
@@ -441,12 +442,20 @@
         const params = new URLSearchParams();
 
         const search = searchInput.value.trim();
-        const status = statusFilter.value;
-        const priority = priorityFilter.value;
+        const combined = combinedFilter.value;
+        const from = dateFrom.value;
+        const to = dateTo.value;
 
         if (search) params.append("search", search);
-        if (status) params.append("status", status);
-        if (priority) params.append("priority", priority);
+
+        if (combined.startsWith("status:")) {
+            params.append("status", combined.slice(7));
+        } else if (combined.startsWith("priority:")) {
+            params.append("priority", combined.slice(9));
+        }
+
+        if (from) params.append("date_from", from);
+        if (to) params.append("date_to", to);
 
         const response = await apiFetch(`/api/service-orders?${params.toString()}`);
         const payload = await response.json();
@@ -592,11 +601,15 @@
             loadOrders().catch((error) => showAlert(error.message));
         });
 
-        statusFilter.addEventListener("change", () => {
+        combinedFilter.addEventListener("change", () => {
             loadOrders().catch((error) => showAlert(error.message));
         });
 
-        priorityFilter.addEventListener("change", () => {
+        dateFrom.addEventListener("change", () => {
+            loadOrders().catch((error) => showAlert(error.message));
+        });
+
+        dateTo.addEventListener("change", () => {
             loadOrders().catch((error) => showAlert(error.message));
         });
 

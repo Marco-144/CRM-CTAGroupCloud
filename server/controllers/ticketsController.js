@@ -79,6 +79,9 @@ exports.getTickets = async (req, res) => {
             has_service_order = "",
         } = req.query;
 
+        const isAdmin = String(req.auth?.department || "").toLowerCase() === "administrador";
+        const authUserId = Number(req.auth?.sub || 0);
+
         let query = `
             SELECT
                 t.id_ticket,
@@ -146,6 +149,11 @@ exports.getTickets = async (req, res) => {
         if (has_service_order === "0" || has_service_order === "1") {
             query += " AND t.has_service_order = ?";
             params.push(Number(has_service_order));
+        }
+
+        if (!isAdmin && authUserId) {
+            query += " AND t.id_assigned_user = ?";
+            params.push(authUserId);
         }
 
         query += " ORDER BY t.id_ticket DESC";
