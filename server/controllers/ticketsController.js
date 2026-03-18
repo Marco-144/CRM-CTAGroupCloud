@@ -4,6 +4,52 @@ const {
     mergeStoredAttachments,
 } = require("../utils/attachments");
 
+function normalizeText(value) {
+    return String(value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim();
+}
+
+async function getUserVisibilityScope(userId) {
+    const safeUserId = Number(userId || 0);
+    if (!safeUserId) {
+        return {
+            isAdmin: false,
+            isEngineeringHead: false,
+            idDepartment: 0,
+        };
+    }
+
+    const [rows] = await db.query(
+        `SELECT
+            u.id_department,
+            COALESCE(d.name, '') AS department_name,
+            COALESCE(r.name, '') AS role_name
+         FROM users u
+         LEFT JOIN departments d ON d.id_department = u.id_department
+         LEFT JOIN roles r ON r.id_role = u.id_role
+         WHERE u.id = ?
+         LIMIT 1`,
+        [safeUserId]
+    );
+
+    const currentUser = rows[0] || {};
+    const normalizedDepartment = normalizeText(currentUser.department_name);
+    const normalizedRole = normalizeText(currentUser.role_name);
+
+    const isAdmin = normalizedDepartment === "administrador";
+    const isEngineering = normalizedDepartment.includes("ingenier");
+    const isDepartmentHead = normalizedRole.includes("jefe") && normalizedRole.includes("departamento");
+
+    return {
+        isAdmin,
+        isEngineeringHead: isEngineering && isDepartmentHead,
+        idDepartment: Number(currentUser.id_department || 0),
+    };
+}
+
 async function loadTicketResponseAttachments(connection, responseIds) {
     if (!Array.isArray(responseIds) || !responseIds.length) {
         return new Map();
@@ -79,8 +125,8 @@ exports.getTickets = async (req, res) => {
             has_service_order = "",
         } = req.query;
 
-        const isAdmin = String(req.auth?.department || "").toLowerCase() === "administrador";
         const authUserId = Number(req.auth?.sub || 0);
+        const visibility = await getUserVisibilityScope(authUserId);
 
         let query = `
             SELECT
@@ -113,6 +159,7 @@ exports.getTickets = async (req, res) => {
             LEFT JOIN departments d ON d.id_department = t.id_department
             LEFT JOIN users uc ON uc.id = t.id_created_by
             LEFT JOIN users ua ON ua.id = t.id_assigned_user
+            LEFT JOIN roles rua ON rua.id_role = ua.id_role
             WHERE 1 = 1
         `;
 
@@ -151,9 +198,14 @@ exports.getTickets = async (req, res) => {
             params.push(Number(has_service_order));
         }
 
-        if (!isAdmin && authUserId) {
-            query += " AND t.id_assigned_user = ?";
-            params.push(authUserId);
+        if (!visibility.isAdmin && authUserId) {
+            if (visibility.isEngineeringHead && visibility.idDepartment) {
+                query += " AND (ua.id_department = ? OR LOWER(rua.name) LIKE ?)";
+                params.push(visibility.idDepartment, "%ingenier%");
+            } else {
+                query += " AND t.id_assigned_user = ?";
+                params.push(authUserId);
+            }
         }
 
         query += " ORDER BY t.id_ticket DESC";
