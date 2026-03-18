@@ -4,6 +4,52 @@ const {
     mergeStoredAttachments,
 } = require("../utils/attachments");
 
+function normalizeText(value) {
+    return String(value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim();
+}
+
+async function getUserVisibilityScope(userId) {
+    const safeUserId = Number(userId || 0);
+    if (!safeUserId) {
+        return {
+            isAdmin: false,
+            isEngineeringHead: false,
+            idDepartment: 0,
+        };
+    }
+
+    const [rows] = await db.query(
+        `SELECT
+            u.id_department,
+            COALESCE(d.name, '') AS department_name,
+            COALESCE(r.name, '') AS role_name
+         FROM users u
+         LEFT JOIN departments d ON d.id_department = u.id_department
+         LEFT JOIN roles r ON r.id_role = u.id_role
+         WHERE u.id = ?
+         LIMIT 1`,
+        [safeUserId]
+    );
+
+    const currentUser = rows[0] || {};
+    const normalizedDepartment = normalizeText(currentUser.department_name);
+    const normalizedRole = normalizeText(currentUser.role_name);
+
+    const isAdmin = normalizedDepartment === "administrador";
+    const isEngineering = normalizedDepartment.includes("ingenier");
+    const isDepartmentHead = normalizedRole.includes("jefe") && normalizedRole.includes("departamento");
+
+    return {
+        isAdmin,
+        isEngineeringHead: isEngineering && isDepartmentHead,
+        idDepartment: Number(currentUser.id_department || 0),
+    };
+}
+
 function normalizeComparableValue(value) {
     if (value === null || value === undefined) {
         return "";
@@ -106,8 +152,8 @@ exports.getServiceOrders = async (req, res) => {
     try {
         const { search = "", status = "", priority = "", id_ticket = "", date_from = "", date_to = "" } = req.query;
 
-        const isAdmin = String(req.auth?.department || "").toLowerCase() === "administrador";
         const authUserId = Number(req.auth?.sub || 0);
+        const visibility = await getUserVisibilityScope(authUserId);
 
         let query = `
             SELECT
@@ -134,6 +180,7 @@ exports.getServiceOrders = async (req, res) => {
             LEFT JOIN prospects p ON p.id_prospect = so.id_prospect AND COALESCE(p.is_client, 0) = 1
             LEFT JOIN users uc ON uc.id = so.id_created_by
             LEFT JOIN users ua ON ua.id = so.id_assigned_user
+            LEFT JOIN roles rua ON rua.id_role = ua.id_role
             WHERE 1 = 1
         `;
 
@@ -168,9 +215,14 @@ exports.getServiceOrders = async (req, res) => {
             params.push(Number(id_ticket));
         }
 
-        if (!isAdmin && authUserId) {
-            query += " AND so.id_assigned_user = ?";
-            params.push(authUserId);
+        if (!visibility.isAdmin && authUserId) {
+            if (visibility.isEngineeringHead && visibility.idDepartment) {
+                query += " AND (ua.id_department = ? OR LOWER(rua.name) LIKE ?)";
+                params.push(visibility.idDepartment, "%ingenier%");
+            } else {
+                query += " AND so.id_assigned_user = ?";
+                params.push(authUserId);
+            }
         }
 
         if (date_from) {
