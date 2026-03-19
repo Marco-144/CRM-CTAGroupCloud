@@ -1,22 +1,5 @@
 const db = require("../config/db");
 
-async function ensureContactsTable(connectionOrDb = db) {
-    await connectionOrDb.query(`
-        CREATE TABLE IF NOT EXISTS client_contacts (
-            id_contact INT AUTO_INCREMENT PRIMARY KEY,
-            id_prospect INT NOT NULL,
-            name VARCHAR(150) NOT NULL,
-            position VARCHAR(120) NULL,
-            phone VARCHAR(50) NULL,
-            email VARCHAR(180) NULL,
-            is_primary TINYINT(1) NOT NULL DEFAULT 0,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            INDEX idx_client_contacts_prospect (id_prospect)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    `);
-}
-
 function parseContacts(rawContacts) {
     if (!rawContacts) return [];
 
@@ -125,7 +108,6 @@ async function upsertClientProfile(connection, idProspect, profileData, file) {
 }
 
 async function syncClientContacts(connection, idProspect, contacts) {
-    await ensureContactsTable(connection);
 
     await connection.query(
         `DELETE FROM client_contacts WHERE id_prospect = ?`,
@@ -220,7 +202,6 @@ exports.getClient = async (req, res) => {
             return res.status(404).json({ success: false, message: "Cliente no encontrado" });
         }
 
-        await ensureContactsTable(db);
         const [contactRows] = await db.query(
             `
             SELECT id_contact, name, position, phone, email, is_primary
