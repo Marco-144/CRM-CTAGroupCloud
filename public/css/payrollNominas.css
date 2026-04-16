@@ -1,0 +1,7 @@
+.payroll-nominas-view .table > :not(caption) > * > * {
+    vertical-align: middle;
+}
+
+.payroll-nominas-view .badge {
+    font-weight: 600;
+}

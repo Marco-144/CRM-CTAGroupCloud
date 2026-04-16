@@ -69,12 +69,18 @@
                         </a>
 
                         <div class="collapse subCategory" id="accountingSub">
-                            <a class="nav-link small menu-disabled" href="#">
-                                <span class="menu-text">Facturación</span>
+                            <a class="nav-link small"
+                                onclick="loadView('views/payrollEmployees.html', 'css/payrollEmployees.css', 'js/payrollEmployees.js')">
+                                <span class="menu-text">Empleados</span>
+                            </a>
+
+                            <a class="nav-link small"
+                                onclick="loadView('views/payrollNominas.html', 'css/payrollNominas.css', 'js/payrollNominas.js')">
+                                <span class="menu-text">Nominas</span>
                             </a>
 
                             <a class="nav-link small menu-disabled" href="#">
-                                <span class="menu-text">Nomina</span>
+                                <span class="menu-text">Facturación</span>
                             </a>
 
                             <a class="nav-link small menu-disabled" href="#">
@@ -101,7 +107,7 @@
                                 <span class="menu-text">Tickets de Soporte</span>
                             </a>
 
-                            <a class="nav-link small" 
+                            <a class="nav-link small"
                                 onclick="loadView('views/bitacoras.html', 'css/bitacoras.css', 'js/bitacoras.js')">
                                 <span class="menu-text">Bitácoras</span>
                             </a>

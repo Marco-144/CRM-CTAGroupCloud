@@ -44,13 +44,12 @@
                         <small class="text-muted">
                             <i class="bi bi-calendar-event"></i>
                             ${new Date(b.created_at).toLocaleDateString('es-ES', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-        })}
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                            })}
                         </small>
                     </div>
-                    <div class="bitacora-preview">${escapeHtml(b.preview || "Sin descripción")}</div>
                 </div>
                 <div class="bitacora-actions">
                     <button class="btn btn-sm btn-outline-secondary" onclick="downloadBitacoraPdf(${b.id_bitacora})"
@@ -69,6 +68,8 @@
             </div>
         `).join("");
     }
+
+    /* <div class="bitacora-preview">${escapeHtml(b.preview || "Sin descripción")}</div> */
 
     window.editBitacora = (id) => {
         window.__bitacoraEditId = id;
