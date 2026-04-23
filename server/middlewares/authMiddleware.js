@@ -4,8 +4,16 @@ const JWT_SECRET = process.env.JWT_SECRET || "change_this_dev_secret";
 
 function getBearerToken(req) {
   const authHeader = req.headers.authorization || "";
-  if (!authHeader.startsWith("Bearer ")) return null;
-  return authHeader.slice(7).trim();
+  if (authHeader.startsWith("Bearer ")) {
+    return authHeader.slice(7).trim();
+  }
+
+  const queryToken = req.query?.token;
+  if (typeof queryToken === "string" && queryToken.trim()) {
+    return queryToken.trim();
+  }
+
+  return null;
 }
 
 function authenticateToken(req, res, next) {

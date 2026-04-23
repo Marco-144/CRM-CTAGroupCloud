@@ -9,18 +9,40 @@
     const paymentModal = bootstrap.Modal.getOrCreateInstance(document.getElementById("addPaymentModal"));
 
     const paymentForm = document.getElementById("paymentForm");
+    const paymentId = document.getElementById("paymentId");
     const paymentSaleId = document.getElementById("paymentSaleId");
     const paymentAmount = document.getElementById("paymentAmount");
     const paymentMethod = document.getElementById("paymentMethod");
+    const paymentApplyTo = document.getElementById("paymentApplyTo");
     const paymentReference = document.getElementById("paymentReference");
+    const paymentNotes = document.getElementById("paymentNotes");
+    const paymentRecurringTargetInfo = document.getElementById("paymentRecurringTargetInfo");
+    const paymentQuoteReferenceInfo = document.getElementById("paymentQuoteReferenceInfo");
+    const paymentQuoteItemsBody = document.getElementById("paymentQuoteItemsBody");
+    const paymentModalTitle = document.getElementById("paymentModalTitle");
+    const paymentSubmitButton = paymentForm?.querySelector('button[type="submit"]');
+    const recurringBoardTable = document.getElementById("recurringBoardTable");
+    const recurringBoardMonth = document.getElementById("recurringBoardMonth");
+    const recurringBoardPendingCount = document.getElementById("recurringBoardPendingCount");
+    const recurringBoardPaidCount = document.getElementById("recurringBoardPaidCount");
+    const recurringBoardPendingAmount = document.getElementById("recurringBoardPendingAmount");
+    const recurringBoardPaidAmount = document.getElementById("recurringBoardPaidAmount");
+    const recurringBoardPagination = document.getElementById("recurringBoardPagination");
 
     const showAlert = window.showAppAlert || ((message) => Promise.resolve(window.alert(message)));
     const showConfirm = window.showAppConfirm || ((message) => Promise.resolve(window.confirm(message)));
+    const GLOBAL_IVA_RATE = 0.16;
 
     let salesCache = [];
     let currentSaleId = null;
+    let currentPaymentsById = new Map();
+    let paymentContextBySaleId = new Map();
+    let selectedRecurringChargeId = null;
+    let recurringBoardCache = [];
+    let recurringBoardCurrentPage = 1;
     const TABLE_PAGE_SIZE = 7;
     const CARD_PAGE_SIZE = 5;
+    const RECURRING_BOARD_PAGE_SIZE = 8;
     let currentPage = 1;
     const paginationContainer = ensurePaginationContainer(table, "salesPagination");
 
@@ -100,7 +122,8 @@
                 <div class="sale-card-meta">Empresa: ${escapeHTML(sale.company || "-")}</div>
                 <div class="sale-card-meta">Fecha: ${formatDate(sale.sale_date)}</div>
                 <div class="sale-card-meta">Total: ${formatMoney(sale.total)}</div>
-                <div class="sale-card-meta">Pendiente: ${formatMoney(sale.pending_amount)}</div>
+                <div class="sale-card-meta">Pendiente base: ${formatMoney(sale.pending_amount)}</div>
+                <div class="sale-card-meta">Mensual actual: ${formatMoney(sale.recurring_current_month_pending_amount)}</div>
                 <div class="sale-card-meta">Pago: ${escapeHTML(sale.payment_status || "Pendiente")}</div>
                 <div class="sale-card-meta">Estatus: ${escapeHTML(sale.sale_status || "Activa")}</div>
                 <div class="sale-card-actions mt-2">
@@ -199,7 +222,10 @@
 			<td>${escapeHTML(sale.company || "-")}</td>
 			<td>${formatDate(sale.sale_date)}</td>
 			<td>${formatMoney(sale.total)}</td>
-            <td>${formatMoney(sale.pending_amount)}</td>
+            <td>
+                <div>${formatMoney(sale.pending_amount)}</div>
+                <small class="text-muted d-block">Mensual: ${formatMoney(sale.recurring_current_month_pending_amount)}</small>
+            </td>
 			<td>${escapeHTML(sale.payment_status || "Pendiente")}</td>
 			<td>${escapeHTML(sale.sale_status || "Activa")}</td>
             <td class="text-end">
@@ -254,22 +280,409 @@
         currentPage = 1;
         applySearch();
         updateKpis();
+        loadRecurringBoard().catch((error) => console.error("Error cargando tablero mensual:", error));
     }
 
     function renderPaymentsTable(payments) {
         if (!payments.length) {
-            return `<tr><td colspan="5" class="text-center text-muted">Sin pagos registrados</td></tr>`;
+            return `<tr><td colspan="7" class="text-center text-muted">Sin pagos registrados</td></tr>`;
         }
 
         return payments.map((item) => `
 		<tr>
 			<td>${formatDate(item.payment_date)}</td>
+            <td>${escapeHTML(formatMonthLabel(item.charge_month))}</td>
 			<td>${formatMoney(item.amount, item.currency || "MXN")}</td>
 			<td>${escapeHTML(item.payment_method || "-")}</td>
 			<td>${escapeHTML(item.reference || "-")}</td>
 			<td>${escapeHTML(item.notes || "-")}</td>
+            <td class="text-end">
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-primary edit-payment" data-payment-id="${item.id_payment}">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger delete-payment" data-payment-id="${item.id_payment}">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </td>
 		</tr>
 	`).join("");
+    }
+
+    function renderQuoteItemsTable(items) {
+        if (!items.length) {
+            return `<tr><td colspan="5" class="text-center text-muted">Sin conceptos de cotizacion</td></tr>`;
+        }
+
+        return items.map((item) => `
+		<tr>
+			<td>${escapeHTML(item.descripcion || "-")}</td>
+			<td>${escapeHTML(item.periodicidad || "-")}</td>
+			<td>${escapeHTML(item.cantidad || "-")}</td>
+			<td>${formatMoney(item.costo_unitario)}</td>
+			<td>${formatMoney(item.line_total)}</td>
+		</tr>
+	`).join("");
+    }
+
+    function buildQuoteReference(sale, quoteItems) {
+        const quoteFolio = sale?.quote_folio ? `COT-${sale.quote_folio}` : "Cotizacion";
+        const items = Array.isArray(quoteItems) ? quoteItems : [];
+
+        if (!items.length) {
+            return quoteFolio;
+        }
+
+        const conciseItems = items
+            .slice(0, 2)
+            .map((item) => String(item.descripcion || "").trim())
+            .filter(Boolean)
+            .map((text) => text.length > 28 ? `${text.slice(0, 28)}...` : text);
+
+        const suffix = conciseItems.length ? ` | ${conciseItems.join("; ")}` : "";
+        return `${quoteFolio}${suffix}`.slice(0, 100);
+    }
+
+    function renderQuoteItemsInPaymentModal(items) {
+        if (!paymentQuoteItemsBody) return;
+
+        if (!Array.isArray(items) || !items.length) {
+            paymentQuoteItemsBody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center text-muted">Sin conceptos de cotizacion</td>
+                </tr>
+            `;
+            return;
+        }
+
+        paymentQuoteItemsBody.innerHTML = renderQuoteItemsTable(items);
+    }
+
+    function formatMonthLabel(value) {
+        if (!value) return "-";
+
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return "-";
+
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const year = date.getFullYear();
+
+        return `${month}/${year}`;
+    }
+
+    function renderRecurringChargesTable(charges) {
+        if (!Array.isArray(charges) || !charges.length) {
+            return `
+                <tr>
+                    <td colspan="5" class="text-center text-muted">Sin cobros mensuales recurrentes</td>
+                </tr>
+            `;
+        }
+
+        return charges.map((charge) => {
+            const status = String(charge.status || "Pendiente");
+            let badgeClass = "bg-secondary";
+
+            if (status === "Pagado") {
+                badgeClass = "bg-success";
+            } else if (status === "Pagado Parcial") {
+                badgeClass = "bg-warning text-dark";
+            }
+
+            return `
+                <tr>
+                    <td>${escapeHTML(formatMonthLabel(charge.charge_month))}</td>
+                    <td>${formatMoney(charge.amount)}</td>
+                    <td>${formatMoney(charge.paid_amount)}</td>
+                    <td>${formatMoney(charge.pending_amount)}</td>
+                    <td><span class="badge ${badgeClass}">${escapeHTML(status)}</span></td>
+                </tr>
+            `;
+        }).join("");
+    }
+
+    function renderRecurringBoardTable(items) {
+        if (!recurringBoardTable) return;
+
+        if (!Array.isArray(items) || !items.length) {
+            recurringBoardTable.innerHTML = `
+                <tr>
+                    <td colspan="10" class="text-center text-muted py-4">Sin cobros mensuales registrados</td>
+                </tr>
+            `;
+            if (recurringBoardPagination) {
+                recurringBoardPagination.innerHTML = "";
+            }
+            return;
+        }
+
+        const totalPages = Math.max(1, Math.ceil(items.length / RECURRING_BOARD_PAGE_SIZE));
+        if (recurringBoardCurrentPage > totalPages) {
+            recurringBoardCurrentPage = totalPages;
+        }
+
+        const start = (recurringBoardCurrentPage - 1) * RECURRING_BOARD_PAGE_SIZE;
+        const paginatedItems = items.slice(start, start + RECURRING_BOARD_PAGE_SIZE);
+
+        recurringBoardTable.innerHTML = paginatedItems.map((item) => {
+            const status = String(item.status || "Pendiente");
+            let badgeClass = "bg-secondary";
+            const isAmountWithIva = Number(item.is_amount_with_iva ?? 1) === 1;
+            const storedAmount = Number(item.amount || 0);
+            const netAmount = isAmountWithIva
+                ? Math.round((storedAmount / (1 + GLOBAL_IVA_RATE)) * 100) / 100
+                : storedAmount;
+            const amountWithIva = isAmountWithIva
+                ? storedAmount
+                : Math.round((storedAmount * (1 + GLOBAL_IVA_RATE)) * 100) / 100;
+            const chargeId = Number(item.id_recurring_charge || 0);
+
+            if (status === "Pagado") {
+                badgeClass = "bg-success";
+            } else if (status === "Pagado Parcial") {
+                badgeClass = "bg-warning text-dark";
+            }
+
+            return `
+                <tr>
+                    <td>${escapeHTML(formatMonthLabel(item.charge_month))}</td>
+                    <td>${escapeHTML(item.sale_folio || "-")}</td>
+                    <td>${escapeHTML(item.company || "-")}</td>
+                    <td>${formatMoney(netAmount)}</td>
+                    <td>${formatMoney(amountWithIva)}</td>
+                    <td>${formatMoney(item.paid_amount)}</td>
+                    <td>${formatMoney(item.pending_amount)}</td>
+                    <td><span class="badge ${badgeClass}">${escapeHTML(status)}</span></td>
+                    <td>
+                        <div class="d-flex flex-column gap-2 recurring-edit-box" data-charge-id="${chargeId}">
+                            <input
+                                type="number"
+                                class="form-control form-control-sm recurring-net-input"
+                                min="0.01"
+                                step="0.01"
+                                value="${Number(netAmount || 0).toFixed(2)}"
+                            >
+                            <div class="form-check">
+                                <input
+                                    class="form-check-input recurring-iva-check"
+                                    type="checkbox"
+                                    id="recurringIva${chargeId}"
+                                    ${isAmountWithIva ? "checked" : ""}
+                                >
+                                <label class="form-check-label small" for="recurringIva${chargeId}">Aplicar IVA</label>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary save-recurring-charge" data-charge-id="${chargeId}">Guardar</button>
+                        </div>
+                    </td>
+                    <td class="text-end">
+                        ${Number(item.pending_amount || 0) > 0 ? `
+                            <button type="button" class="btn btn-sm btn-outline-success mark-paid-recurring" data-recurring-charge-id="${Number(item.id_recurring_charge || 0)}" data-sale-id="${item.id_sale}" data-amount="${Number(item.pending_amount || 0)}" data-month="${escapeHTML(formatMonthLabel(item.charge_month))}">
+                                <i class="bi bi-check2-circle me-1"></i>Marcar pagado
+                            </button>
+                        ` : `<span class="text-muted small">Sin acción</span>`}
+                    </td>
+                </tr>
+            `;
+        }).join("");
+
+        if (!recurringBoardPagination) return;
+
+        if (items.length <= RECURRING_BOARD_PAGE_SIZE) {
+            recurringBoardPagination.innerHTML = "";
+            return;
+        }
+
+        const prevDisabled = recurringBoardCurrentPage <= 1 ? "disabled" : "";
+        const nextDisabled = recurringBoardCurrentPage >= totalPages ? "disabled" : "";
+
+        recurringBoardPagination.innerHTML = `
+            <button type="button" class="btn btn-sm btn-outline-secondary" ${prevDisabled} data-board-page="prev">Anterior</button>
+            <span class="small text-muted">Página ${recurringBoardCurrentPage} de ${totalPages}</span>
+            <button type="button" class="btn btn-sm btn-outline-secondary" ${nextDisabled} data-board-page="next">Siguiente</button>
+        `;
+
+        recurringBoardPagination.querySelector('[data-board-page="prev"]')?.addEventListener("click", () => {
+            if (recurringBoardCurrentPage > 1) {
+                recurringBoardCurrentPage -= 1;
+                renderRecurringBoardTable(recurringBoardCache);
+            }
+        });
+
+        recurringBoardPagination.querySelector('[data-board-page="next"]')?.addEventListener("click", () => {
+            if (recurringBoardCurrentPage < totalPages) {
+                recurringBoardCurrentPage += 1;
+                renderRecurringBoardTable(recurringBoardCache);
+            }
+        });
+    }
+
+    async function loadRecurringBoard() {
+        const response = await apiFetch("/api/sales/recurring-board");
+        const payload = await response.json().catch(() => ({}));
+
+        if (!response.ok || payload.success === false) {
+            throw new Error(payload.message || "No se pudo cargar el tablero mensual");
+        }
+
+        const data = payload.data || {};
+        const items = data.items || [];
+        recurringBoardCache = items;
+        recurringBoardCurrentPage = 1;
+
+        if (recurringBoardMonth) {
+            recurringBoardMonth.textContent = data.month_label || "Mes actual";
+        }
+
+        if (recurringBoardPendingCount) {
+            recurringBoardPendingCount.textContent = `${data.pending_count || 0} pendientes`;
+        }
+
+        if (recurringBoardPaidCount) {
+            recurringBoardPaidCount.textContent = `${data.paid_count || 0} pagados`;
+        }
+
+        if (recurringBoardPendingAmount) {
+            recurringBoardPendingAmount.textContent = formatMoney(data.pending_amount || 0);
+        }
+
+        if (recurringBoardPaidAmount) {
+            recurringBoardPaidAmount.textContent = formatMoney(data.paid_amount || 0);
+        }
+
+        renderRecurringBoardTable(items);
+    }
+
+    function resetPaymentModalState() {
+        paymentForm.reset();
+        selectedRecurringChargeId = null;
+
+        if (paymentId) paymentId.value = "";
+        if (paymentSaleId) paymentSaleId.value = "";
+        if (paymentApplyTo) {
+            paymentApplyTo.value = "base";
+            paymentApplyTo.disabled = false;
+        }
+        if (paymentRecurringTargetInfo) {
+            paymentRecurringTargetInfo.classList.add("d-none");
+            paymentRecurringTargetInfo.textContent = "";
+        }
+        if (paymentQuoteReferenceInfo) paymentQuoteReferenceInfo.textContent = "";
+        if (paymentModalTitle) paymentModalTitle.textContent = "Registrar pago";
+        if (paymentSubmitButton) paymentSubmitButton.textContent = "Guardar pago";
+    }
+
+    async function ensurePaymentContextForSale(saleId) {
+        if (paymentContextBySaleId.has(Number(saleId))) {
+            return paymentContextBySaleId.get(Number(saleId));
+        }
+
+        const saleResponse = await apiFetch(`/api/sales/${saleId}`);
+        const salePayload = await saleResponse.json().catch(() => ({}));
+
+        if (!saleResponse.ok || !salePayload.success) {
+            throw new Error(salePayload.message || "No se pudo cargar la cotizacion para referencia");
+        }
+
+        const sale = salePayload.data?.sale || {};
+        const quoteItems = salePayload.data?.quote_items || [];
+
+        const context = {
+            sale,
+            quoteItems,
+            suggestedReference: buildQuoteReference(sale, quoteItems),
+        };
+
+        paymentContextBySaleId.set(Number(saleId), context);
+        return context;
+    }
+
+    function openPaymentModalForSale(saleId) {
+        const context = paymentContextBySaleId.get(Number(saleId));
+        if (!context) return;
+
+        resetPaymentModalState();
+
+        paymentSaleId.value = String(saleId);
+        paymentReference.value = "";
+        paymentNotes.value = "";
+        if (paymentApplyTo) {
+            paymentApplyTo.value = "base";
+            paymentApplyTo.disabled = false;
+        }
+        renderQuoteItemsInPaymentModal(context.quoteItems || []);
+
+        if (paymentQuoteReferenceInfo) {
+            paymentQuoteReferenceInfo.textContent = context.suggestedReference
+                ? `Sugerida (opcional): ${context.suggestedReference}`
+                : "Sin referencia sugerida";
+        }
+
+        paymentModal.show();
+    }
+
+    async function openRecurringChargePayment(saleId, recurringChargeId, amount, monthLabel) {
+        await ensurePaymentContextForSale(saleId);
+        openPaymentModalForSale(saleId);
+        selectedRecurringChargeId = Number(recurringChargeId || 0) || null;
+        currentSaleId = null;
+        const context = paymentContextBySaleId.get(Number(saleId));
+
+        if (paymentApplyTo) {
+            paymentApplyTo.value = "recurring";
+            paymentApplyTo.disabled = true;
+        }
+
+        if (paymentAmount) {
+            paymentAmount.value = String(Number(amount || 0));
+        }
+
+        if (paymentReference) {
+            paymentReference.value = `Pago mensual ${monthLabel}`;
+        }
+
+        if (paymentNotes) {
+            paymentNotes.value = `Marcado desde el tablero mensual`;
+        }
+
+        if (paymentRecurringTargetInfo) {
+            const folio = context?.sale?.sale_folio ? String(context.sale.sale_folio) : "-";
+            paymentRecurringTargetInfo.textContent = `Objetivo de cobro: Mes ${monthLabel} | Folio ${folio}`;
+            paymentRecurringTargetInfo.classList.remove("d-none");
+        }
+    }
+
+    function openPaymentModalForEdit(payment) {
+        const paymentSale = Number(payment.id_sale);
+        const context = paymentContextBySaleId.get(paymentSale);
+
+        if (!context) return;
+
+        resetPaymentModalState();
+
+        if (paymentId) paymentId.value = String(payment.id_payment);
+        paymentSaleId.value = String(paymentSale);
+        paymentAmount.value = String(payment.amount ?? "");
+        paymentMethod.value = payment.payment_method || "Transferencia";
+        paymentReference.value = payment.reference || "";
+        paymentNotes.value = payment.notes || "";
+        if (paymentApplyTo) {
+            paymentApplyTo.value = Number(payment.id_recurring_charge || 0) > 0 ? "recurring" : "base";
+            paymentApplyTo.disabled = true;
+        }
+
+        if (paymentModalTitle) paymentModalTitle.textContent = "Editar pago";
+        if (paymentSubmitButton) paymentSubmitButton.textContent = "Actualizar pago";
+
+        renderQuoteItemsInPaymentModal(context.quoteItems || []);
+
+        if (paymentQuoteReferenceInfo) {
+            paymentQuoteReferenceInfo.textContent = context.suggestedReference
+                ? `Sugerida (opcional): ${context.suggestedReference}`
+                : "Sin referencia sugerida";
+        }
+
+        paymentModal.show();
     }
 
     async function openDetail(id) {
@@ -292,7 +705,17 @@
         }
 
         const sale = salePayload.data?.sale || {};
+        const quoteItems = salePayload.data?.quote_items || [];
+        const recurringCharges = salePayload.data?.recurring_charges || [];
         const payments = paymentsPayload.data || [];
+
+        currentPaymentsById = new Map(payments.map((item) => [Number(item.id_payment), item]));
+
+        paymentContextBySaleId.set(Number(id), {
+            sale,
+            quoteItems,
+            suggestedReference: buildQuoteReference(sale, quoteItems),
+        });
 
         detailBody.innerHTML = `
 		<div class="row g-3 mb-3">
@@ -309,6 +732,14 @@
 				<div class="fw-semibold">${escapeHTML(sale.payment_status || "Pendiente")}</div>
 			</div>
 			<div class="col-md-4">
+                <div class="text-muted small">Empresa</div>
+                <div class="fw-semibold">${escapeHTML(sale.company || "-")}</div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-muted small">Folio cotizacion</div>
+                <div class="fw-semibold">${escapeHTML(sale.quote_folio ? `COT-${sale.quote_folio}` : "-")}</div>
+            </div>
+            <div class="col-md-4">
 				<div class="text-muted small">Subtotal</div>
 				<div class="fw-semibold">${formatMoney(sale.subtotal, sale.currency || "MXN")}</div>
 			</div>
@@ -322,15 +753,49 @@
 			</div>
 		</div>
 
+        <h6 class="fw-semibold">Conceptos cotizados</h6>
+        <table class="table table-sm align-middle mb-3">
+            <thead>
+                <tr>
+                    <th>Descripcion</th>
+                    <th>Periodicidad</th>
+                    <th>Cantidad</th>
+                    <th>Costo unitario</th>
+                    <th>Total linea</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${renderQuoteItemsTable(quoteItems)}
+            </tbody>
+        </table>
+
+        <h6 class="fw-semibold">Cobros mensuales recurrentes</h6>
+        <table class="table table-sm align-middle mb-3">
+            <thead>
+                <tr>
+                    <th>Mes</th>
+                    <th>Programado</th>
+                    <th>Pagado</th>
+                    <th>Pendiente</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${renderRecurringChargesTable(recurringCharges)}
+            </tbody>
+        </table>
+
 		<h6 class="fw-semibold">Pagos</h6>
 		<table class="table table-sm align-middle mb-0">
 			<thead>
 				<tr>
 					<th>Fecha</th>
+                    <th>Mes</th>
 					<th>Monto</th>
 					<th>Metodo</th>
 					<th>Referencia</th>
 					<th>Notas</th>
+                    <th class="text-end">Acciones</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -350,10 +815,17 @@
             amount: Number(paymentAmount.value),
             payment_method: paymentMethod.value,
             reference: paymentReference.value.trim() || null,
+            notes: paymentNotes.value.trim() || null,
+            recurring_charge_id: selectedRecurringChargeId,
+            apply_to: paymentApplyTo?.value || "base",
         };
 
-        const response = await apiFetch("/api/sale-payments", {
-            method: "POST",
+        const editingPaymentId = paymentId?.value ? Number(paymentId.value) : null;
+        const endpoint = editingPaymentId ? `/api/sale-payments/${editingPaymentId}` : "/api/sale-payments";
+        const method = editingPaymentId ? "PATCH" : "POST";
+
+        const response = await apiFetch(endpoint, {
+            method,
             body: JSON.stringify(payload),
         });
 
@@ -364,7 +836,25 @@
         }
 
         paymentModal.hide();
-        paymentForm.reset();
+        resetPaymentModalState();
+        await loadSales();
+
+        if (currentSaleId) {
+            await openDetail(currentSaleId);
+        }
+    }
+
+    async function deletePayment(paymentIdValue) {
+        const confirmed = await showConfirm("¿Eliminar este pago? Esta acción recalcula el saldo.");
+        if (!confirmed) return;
+
+        const response = await apiFetch(`/api/sale-payments/${paymentIdValue}`, { method: "DELETE" });
+        const result = await response.json().catch(() => ({}));
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || "No se pudo eliminar el pago");
+        }
+
         await loadSales();
 
         if (currentSaleId) {
@@ -415,6 +905,7 @@
             const addPaymentBtn = event.target.closest(".add-payment");
             const toggleBtn = event.target.closest(".toggle-status");
             const deleteBtn = event.target.closest(".delete-sale");
+            const markPaidBtn = event.target.closest(".mark-paid-recurring");
 
             try {
                 if (detailBtn) {
@@ -423,10 +914,54 @@
                 }
 
                 if (addPaymentBtn) {
-                    paymentSaleId.value = addPaymentBtn.dataset.id;
-                    paymentAmount.value = "";
-                    paymentReference.value = "";
-                    paymentModal.show();
+                    const saleId = Number(addPaymentBtn.dataset.id);
+                    await ensurePaymentContextForSale(saleId);
+                    openPaymentModalForSale(saleId);
+                    return;
+                }
+
+                if (markPaidBtn) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const saleId = Number(markPaidBtn.dataset.saleId);
+                    const recurringChargeId = Number(markPaidBtn.dataset.recurringChargeId || 0);
+                    const amount = Number(markPaidBtn.dataset.amount || 0);
+                    const monthLabel = markPaidBtn.dataset.month || "";
+
+                    await openRecurringChargePayment(saleId, recurringChargeId, amount, monthLabel);
+                    return;
+                }
+
+                const saveRecurringBtn = event.target.closest(".save-recurring-charge");
+                if (saveRecurringBtn) {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    const chargeId = Number(saveRecurringBtn.dataset.chargeId || 0);
+                    const row = saveRecurringBtn.closest("tr");
+                    const netInput = row?.querySelector(".recurring-net-input");
+                    const ivaCheck = row?.querySelector(".recurring-iva-check");
+
+                    const netAmount = Number(netInput?.value || 0);
+                    if (!chargeId || Number.isNaN(netAmount) || netAmount <= 0) {
+                        throw new Error("Ingresa un monto neto valido");
+                    }
+
+                    const response = await apiFetch(`/api/sales/recurring-charge/${chargeId}`, {
+                        method: "PATCH",
+                        body: JSON.stringify({
+                            net_amount: netAmount,
+                            apply_iva: !!ivaCheck?.checked,
+                        }),
+                    });
+
+                    const result = await response.json().catch(() => ({}));
+                    if (!response.ok || !result.success) {
+                        throw new Error(result.message || "No se pudo actualizar el cobro mensual");
+                    }
+
+                    await loadSales();
+                    await showAlert("Cobro mensual actualizado");
                     return;
                 }
 
@@ -445,6 +980,30 @@
 
         table.addEventListener("click", handleSalesAction);
         cards?.addEventListener("click", handleSalesAction);
+        recurringBoardTable?.addEventListener("click", handleSalesAction);
+
+        detailBody?.addEventListener("click", async (event) => {
+            const editBtn = event.target.closest(".edit-payment");
+            const deleteBtn = event.target.closest(".delete-payment");
+
+            try {
+                if (editBtn) {
+                    const payment = currentPaymentsById.get(Number(editBtn.dataset.paymentId));
+                    if (!payment) {
+                        throw new Error("No se encontró el pago para editar");
+                    }
+                    await ensurePaymentContextForSale(payment.id_sale);
+                    openPaymentModalForEdit(payment);
+                    return;
+                }
+
+                if (deleteBtn) {
+                    await deletePayment(deleteBtn.dataset.paymentId);
+                }
+            } catch (error) {
+                await showAlert(error.message);
+            }
+        });
 
         paymentForm.addEventListener("submit", async (event) => {
             try {

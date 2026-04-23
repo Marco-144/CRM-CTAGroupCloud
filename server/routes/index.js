@@ -11,5 +11,7 @@ router.use("/tickets", require("./tickets"));
 router.use("/sales", require("./sales"));
 router.use("/sale-payments", require("./salePayments"));
 router.use("/clients", require("./clients"));
+router.use("/bitacoras", require("./bitacoras"));
+router.use("/payroll", require("./payroll"));
 
 module.exports = router;

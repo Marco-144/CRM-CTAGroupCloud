@@ -3,7 +3,8 @@
     <!-- HEADER -->
     <div class=" dashboard-header d-flex justify-content-between align-items-center mb-4">
         <div class="d-flex align-items-center gap-3">
-            <button class="btn btn-light d-md-none sidebar-mobile-toggle" id="mobileMenuBtn" type="button" aria-label="Abrir menú lateral">
+            <button class="btn btn-light d-md-none sidebar-mobile-toggle" id="mobileMenuBtn" type="button"
+                aria-label="Abrir menú lateral">
                 <i class="bi bi-list fs-4"></i>
             </button>
             <h4 class="fw-semibold" id="welcomeMessage">Hola Usuario 👋</h4>
@@ -62,6 +63,56 @@
             </div>
         </div>
 
+        <div class="col-12 col-sm-6 col-lg-4" id="kpiNominaCard" style="display: none;">
+            <div class="card shadow-sm border-0 rounded-4 p-3">
+                <div class="d-flex align-items-center">
+                    <div class="icon-circle bg-danger-subtle me-3">
+                        <i class="bi bi-cash-stack fs-4 text-danger"></i>
+                    </div>
+                    <div>
+                        <small>Nomina Por Pagar</small>
+                        <h4 id="kpiNominaPendiente" class="fw-bold">N/A</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-lg-4" id="kpiRecurringCard" style="display: none;">
+            <div class="card shadow-sm border-0 rounded-4 p-3">
+                <div class="d-flex align-items-center">
+                    <div class="icon-circle bg-info-subtle me-3">
+                        <i class="bi bi-arrow-repeat fs-4 text-info"></i>
+                    </div>
+                    <div>
+                        <small>Cobro Mensual Pendiente</small>
+                        <h4 id="kpiRecurringPendiente" class="fw-bold">N/A</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 p-4" id="nominaAlertsCard" style="display: none;">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <h5 class="mb-0">Alertas de Nomina</h5>
+            <small class="text-muted">Pendientes por empleado</small>
+        </div>
+
+        <div id="nominaAlertsList" class="d-flex flex-column gap-2">
+            <div class="text-muted">Sin pendientes por mostrar.</div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 p-4 mt-4" id="recurringAlertsCard" style="display: none;">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <h5 class="mb-0">Alertas de Cobro Mensual</h5>
+            <small class="text-muted">Pendientes del mes actual</small>
+        </div>
+
+        <div id="recurringAlertsList" class="d-flex flex-column gap-2">
+            <div class="text-muted">Sin cobros pendientes por mostrar.</div>
+        </div>
     </div>
 </div>
 <!--

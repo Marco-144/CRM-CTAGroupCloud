@@ -8,6 +8,8 @@ router.get("/:saleId", authenticateToken, controller.getPaymentsBySale);
 
 router.post("/", authenticateToken, controller.createPayment);
 
+router.patch("/:id", authenticateToken, controller.updatePayment);
+
 router.delete("/:id", authenticateToken, controller.deletePayment);
 
 module.exports = router;
