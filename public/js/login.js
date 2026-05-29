@@ -6,8 +6,8 @@ const appConfig = {
         primary: "#1c2140",
         primaryHover: "#14182f",
         secondary: "#6c757d",
-        backgroundStart: "#58bfca",
-        backgroundEnd: "#33a4dd"
+        backgroundStart: "#1c2140",
+        backgroundEnd: "#23388e",
     }
 };
 

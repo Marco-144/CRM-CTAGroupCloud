@@ -95,13 +95,13 @@
 
             return `
                 <tr>
-                    <td>${escapeHTML(item.employee_name || "-")}</td>
-                    <td>${formatMoney(item.salary_net)}</td>
-                    <td>${escapeHTML(item.pay_frequency || "-")}</td>
-                    <td>${formatDate(item.start_date)}</td>
-                    <td>${statusBadge}</td>
-                    <td>${formatMoney(item.total_pending)}</td>
-                    <td class="text-end">
+                    <td data-label="Empleado">${escapeHTML(item.employee_name || "-")}</td>
+                    <td data-label="Sueldo Neto">${formatMoney(item.salary_net)}</td>
+                    <td data-label="Periodicidad">${escapeHTML(item.pay_frequency || "-")}</td>
+                    <td data-label="Inicio">${formatDate(item.start_date)}</td>
+                    <td data-label="Estatus">${statusBadge}</td>
+                    <td data-label="Saldo Pendiente">${formatMoney(item.total_pending)}</td>
+                    <td class="text-end" data-label="Acciones">
                         <button class="btn btn-sm btn-outline-secondary me-2 edit-payroll-employee" data-id="${item.id_payroll_employee}">
                             <i class="bi bi-pencil"></i>
                         </button>

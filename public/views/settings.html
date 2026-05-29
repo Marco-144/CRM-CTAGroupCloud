@@ -1,6 +1,12 @@
 <div class="settings-view">
-	<div class="d-flex justify-content-between align-items-center mb-4">
-		<h4 class="fw-semibold mb-0">Configuración</h4>
+	<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+		<div class="d-flex align-items-center gap-3">
+			<button class="btn btn-light d-lg-none sidebar-mobile-toggle" id="mobileMenuBtn" type="button"
+				aria-label="Abrir menú lateral">
+				<i class="bi bi-list fs-4"></i>
+			</button>
+			<h4 class="fw-semibold mb-0">Configuración</h4>
+		</div>
 	</div>
 
 	<div class="accordion settings-accordion" id="settingsAccordion">
@@ -80,7 +86,7 @@
 	</div>
 
 	<div class="modal fade" id="userModal" tabindex="-1" aria-hidden="true">
-		<div class="modal-dialog modal-dialog-centered">
+		<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-form-compact">
 			<div class="modal-content rounded-4">
 				<div class="modal-header">
 					<h5 class="modal-title" id="userModalTitle">Agregar Usuario</h5>

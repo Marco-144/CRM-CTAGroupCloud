@@ -7,8 +7,12 @@
     const historyList = document.getElementById("soDetailHistoryList");
     const responseForm = document.getElementById("soDetailResponseForm");
     const orderIdInput = document.getElementById("soDetailOrderId");
+    const responseIdInput = document.getElementById("soDetailResponseId");
     const responseMessage = document.getElementById("soDetailResponseMessage");
     const responseAttachment = document.getElementById("soDetailResponseAttachment");
+    const responseSubmitBtn = document.getElementById("soDetailResponseSubmitBtn");
+    const responseEditBanner = document.getElementById("soDetailResponseEditBanner");
+    const cancelResponseEditBtn = document.getElementById("soDetailCancelResponseEditBtn");
     const openTicketBtn = document.getElementById("soDetailOpenTicketBtn");
 
     const showAlert = window.showAppAlert || ((message) => Promise.resolve(window.alert(message)));
@@ -80,6 +84,19 @@
     function getPriorityBadgeMarkup(priority) {
         const clean = String(priority || "").toLowerCase();
         return `<span class="badge ${getBadgeClassPriority(clean)}">${escapeHTML(capitalize(clean))}</span>`;
+    }
+
+    function buildStatusOptions(currentStatus) {
+        const statuses = [
+            ["pendiente", "Pendiente"],
+            ["activa", "Activa"],
+            ["completada", "Completada"],
+            ["cancelada", "Cancelada"],
+        ];
+
+        return statuses.map(([value, label]) => `
+            <option value="${value}" ${String(currentStatus || "").toLowerCase() === value ? "selected" : ""}>${label}</option>
+        `).join("");
     }
 
     function buildAttachmentUrl(rawPath) {
@@ -174,15 +191,53 @@
             return `
                 <div class="service-order-response-item">
                     <div class="service-order-response-head">
-                        <strong>${escapeHTML(item.name || item.username || "Usuario")}</strong>
-                        <span class="service-order-response-meta">${escapeHTML(formatDateTime(item.created_at))}</span>
+                        <div>
+                            <strong>${escapeHTML(item.name || item.username || "Usuario")}</strong>
+                            <div class="service-order-response-meta small text-muted">${escapeHTML(roleDept)}</div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="service-order-response-meta text-muted">${escapeHTML(formatDateTime(item.created_at))}</span>
+                            ${(item.can_edit_response || item.can_delete_response) ? `
+                                <div class="service-order-response-actions">
+                                    ${item.can_edit_response ? `<button type="button" class="btn btn-sm btn-outline-secondary response-edit-btn" data-response-id="${item.id_service_order_response}">Editar</button>` : ""}
+                                    ${item.can_delete_response ? `<button type="button" class="btn btn-sm btn-outline-danger response-delete-btn" data-response-id="${item.id_service_order_response}">Eliminar</button>` : ""}
+                                </div>
+                            ` : ""}
+                        </div>
                     </div>
-                    <div class="service-order-response-meta mb-2">${escapeHTML(roleDept)}</div>
-                    <div>${escapeHTML(item.message || "")}</div>
-                    ${attachments}
+                    <div class="mt-2">${escapeHTML(item.message || "")}</div>
+                    ${attachments ? `<div class="mt-3">${attachments}</div>` : ""}
                 </div>
             `;
         }).join("");
+    }
+
+    function clearResponseEditState() {
+        if (responseIdInput) {
+            responseIdInput.value = "";
+        }
+        if (responseSubmitBtn) {
+            responseSubmitBtn.textContent = "Enviar respuesta";
+        }
+        if (responseAttachment) {
+            responseAttachment.value = "";
+        }
+        responseEditBanner?.classList.add("d-none");
+        responseMessage.placeholder = "Escribe tu mensaje...";
+    }
+
+    function setResponseEditState(response) {
+        if (!response || !responseIdInput) return;
+
+        responseIdInput.value = String(response.id_service_order_response);
+        responseMessage.value = response.message || "";
+        if (responseSubmitBtn) {
+            responseSubmitBtn.textContent = "Guardar cambios";
+        }
+        responseEditBanner?.classList.remove("d-none");
+        responseMessage.placeholder = "Edita el mensaje...";
+        responseMessage.focus();
+        responseMessage.scrollIntoView({ behavior: "smooth", block: "center" });
     }
 
     // Renderiza historial de cambios de la orden.
@@ -207,6 +262,32 @@
         }).join("");
     }
 
+    async function updateStatus(event) {
+        event.preventDefault();
+
+        const orderId = Number(orderIdInput.value || 0);
+        const statusSelect = document.getElementById("soDetailStatusSelect");
+        const newStatus = String(statusSelect?.value || "").trim();
+
+        if (!orderId || !newStatus) {
+            await showAlert("Selecciona un estatus válido");
+            return;
+        }
+
+        const response = await apiFetch(`/api/service-orders/${orderId}/status`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: newStatus }),
+        });
+
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload.success) {
+            throw new Error(payload.message || "No se pudo actualizar el estatus");
+        }
+
+        await openDetail(orderId);
+    }
+
     function getLoggedUserId() {
         try {
             const user = JSON.parse(sessionStorage.getItem("loggedUserData") || "{}");
@@ -226,7 +307,9 @@
         }
 
         const order = payload.data;
+        window.currentServiceOrderDetailData = order;
         orderIdInput.value = String(order.id_service_order);
+        clearResponseEditState();
         responseMessage.value = "";
         if (responseAttachment) responseAttachment.value = "";
 
@@ -250,7 +333,7 @@
                     </div>
                     <div class="service-order-meta-item">
                         <span class="service-order-meta-label">Asignado a</span>
-                        <span class="service-order-meta-value">${escapeHTML(order.assigned_user || "-")}</span>
+                        <span class="service-order-meta-value">${escapeHTML(order.assigned_users_label || order.assigned_user || "-")}</span>
                     </div>
                     <div class="service-order-meta-item">
                         <span class="service-order-meta-label">Prioridad</span>
@@ -277,6 +360,22 @@
                     <span class="service-order-meta-label">Descripción</span>
                     <p class="service-order-description-value mb-0">${escapeHTML(order.description || "-")}</p>
                 </div>
+
+                ${(order.permissions?.can_change_status || order.can_change_status) ? `
+                    <form id="soDetailStatusForm" class="service-order-status-form mt-2">
+                        <div class="service-order-status-box">
+                            <div>
+                                <div class="service-order-meta-label">Cambiar estatus</div>
+                            </div>
+                            <div class="service-order-status-controls">
+                                <select class="form-select" id="soDetailStatusSelect">
+                                    ${buildStatusOptions(order.status)}
+                                </select>
+                                <button type="submit" class="btn btn-primary">Actualizar</button>
+                            </div>
+                        </div>
+                    </form>
+                ` : ""}
             </div>
         `;
 
@@ -292,6 +391,8 @@
 
         renderResponses(order.responses || []);
         renderHistory(order.history || []);
+
+        document.getElementById("soDetailStatusForm")?.addEventListener("submit", updateStatus);
     }
 
     // Envía una nueva respuesta al chat de la orden.
@@ -299,6 +400,7 @@
         event.preventDefault();
 
         const id = Number(orderIdInput.value);
+        const editingResponseId = Number(responseIdInput?.value || 0);
         const message = responseMessage.value.trim();
 
         if (!id || (!message && !responseAttachment?.files?.length)) {
@@ -314,17 +416,45 @@
             formData.append("attachments", file);
         }
 
-        const response = await apiFetch(`/api/service-orders/${id}/responses`, {
-            method: "POST",
-            body: formData
+        const isEditing = editingResponseId > 0;
+        const response = await apiFetch(
+            isEditing ? `/api/service-orders/${id}/responses/${editingResponseId}` : `/api/service-orders/${id}/responses`,
+            {
+                method: isEditing ? "PATCH" : "POST",
+                body: formData
+            }
+        );
+
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload.success) {
+            throw new Error(payload.message || (isEditing ? "No se pudo actualizar la respuesta" : "No se pudo enviar la respuesta"));
+        }
+
+        clearResponseEditState();
+        await openDetail(id);
+    }
+
+    async function deleteResponse(responseId) {
+        const orderId = Number(orderIdInput.value || 0);
+        if (!orderId || !responseId) return;
+
+        const confirmed = window.showAppConfirm
+            ? await window.showAppConfirm("¿Eliminar este mensaje?")
+            : window.confirm("¿Eliminar este mensaje?");
+
+        if (!confirmed) return;
+
+        const response = await apiFetch(`/api/service-orders/${orderId}/responses/${responseId}`, {
+            method: "DELETE",
         });
 
         const payload = await response.json().catch(() => ({}));
         if (!response.ok || !payload.success) {
-            throw new Error(payload.message || "No se pudo enviar la respuesta");
+            throw new Error(payload.message || "No se pudo eliminar la respuesta");
         }
 
-        await openDetail(id);
+        clearResponseEditState();
+        await openDetail(orderId);
     }
 
     openTicketBtn?.addEventListener("click", () => {
@@ -342,6 +472,33 @@
         } catch (error) {
             await showAlert(error.message);
         }
+    });
+
+    responsesList?.addEventListener("click", async (event) => {
+        try {
+            const editBtn = event.target.closest(".response-edit-btn");
+            const deleteBtn = event.target.closest(".response-delete-btn");
+            const currentResponses = window.currentServiceOrderDetailData?.responses || [];
+
+            if (editBtn) {
+                const responseId = Number(editBtn.dataset.responseId || 0);
+                const response = currentResponses.find((item) => Number(item.id_service_order_response) === responseId);
+                if (response) {
+                    setResponseEditState(response);
+                }
+                return;
+            }
+
+            if (deleteBtn) {
+                await deleteResponse(Number(deleteBtn.dataset.responseId || 0));
+            }
+        } catch (error) {
+            await showAlert(error.message);
+        }
+    });
+
+    cancelResponseEditBtn?.addEventListener("click", () => {
+        clearResponseEditState();
     });
 
     // Initialize: load order from sessionStorage

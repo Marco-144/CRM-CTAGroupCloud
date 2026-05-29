@@ -1,3 +1,158 @@
+.service-orders-view {
+	position: relative;
+}
+
+.service-orders-filters-float {
+	position: absolute;
+	top: 72px;
+	right: 0;
+	z-index: 20;
+	width: min(320px, calc(100vw - 32px));
+}
+
+.service-orders-filters-card {
+	backdrop-filter: blur(8px);
+}
+
+.service-order-filter-control {
+	border-radius: 0.9rem;
+}
+
+.service-orders-board {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 16px;
+	align-items: start;
+	margin-top: 8px;
+}
+
+.service-orders-column {
+	background: #f8fafc;
+	border: 1px solid #e5e7eb;
+	border-radius: 18px;
+	padding: 14px;
+	min-height: 72vh;
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	box-shadow: 0 10px 22px rgba(15, 23, 42, 0.05);
+}
+
+.service-orders-column-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 10px;
+	margin-bottom: 12px;
+	padding-bottom: 8px;
+	border-bottom: 1px solid #e5e7eb;
+}
+
+.service-orders-column-header h5 {
+	font-size: 1rem;
+	font-weight: 700;
+}
+
+.service-orders-column-body {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	min-height: 0;
+	flex: 1;
+}
+
+.service-orders-column-footer {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 12px;
+	margin-top: auto;
+	padding-top: 12px;
+	border-top: 1px solid #e5e7eb;
+}
+
+.service-orders-column-pagination {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.service-orders-column-pagination .btn {
+	width: 34px;
+	height: 34px;
+	padding: 0;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.service-order-kanban-card {
+	background: #fff;
+	border: 1px solid #e5e7eb;
+	border-radius: 16px;
+	padding: 14px;
+	box-shadow: 0 6px 16px rgba(15, 23, 42, 0.05);
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.service-order-kanban-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 12px;
+}
+
+.service-order-kanban-folio {
+	font-size: 0.85rem;
+	font-weight: 700;
+	color: #0f172a;
+	line-height: 1;
+}
+
+.service-order-kanban-meta {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.service-order-kanban-label {
+	font-size: 0.7rem;
+	font-weight: 500;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: #7c828e;
+}
+
+.service-order-kanban-value {
+	font-size: 0.85rem;
+	color: black;
+	line-height: 1;
+	word-break: break-word;
+}
+
+.service-order-kanban-actions {
+	display: flex;
+	justify-content: flex-end;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.service-orders-empty {
+	border: 1px dashed #cbd5e1;
+	border-radius: 14px;
+	padding: 18px 14px;
+	text-align: center;
+	color: #64748b;
+	background: rgba(255, 255, 255, 0.7);
+}
+
+.service-orders-empty-error {
+	background: #fff;
+}
+
 .service-order-conversation-layout {
 	display: grid;
 	grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
@@ -106,6 +261,33 @@
 	color: #212529;
 }
 
+.service-order-assigned-section {
+	border: 1px solid #e9ecef;
+	border-radius: 12px;
+	padding: 12px;
+	background: #fcfcfd;
+}
+
+.service-order-assigned-list {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin-top: 12px;
+}
+
+.service-order-assigned-row .form-select {
+	min-width: 0;
+}
+
+.service-order-assigned-row .col-auto {
+	display: flex;
+	align-items: center;
+}
+
+.service-order-assigned-row .btn {
+	min-width: 40px;
+}
+
 .service-order-view .btn-anterior {
 	width: 90px;
 }
@@ -164,6 +346,14 @@
 }
 
 @media (max-width: 1300px) {
+	.service-orders-board {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.service-orders-column {
+		min-height: auto;
+	}
+
 	.service-order-conversation-layout {
 		grid-template-columns: 1fr;
 	}
@@ -198,9 +388,32 @@
 	.cotizacion-view .d-flex.gap-2.flex-wrap .form-select {
 		width: 100% !important;
 	}
+
+	.service-orders-filters-float {
+		position: static;
+		width: 100%;
+		margin-bottom: 1rem;
+	}
+
+	.service-orders-filters-card {
+		max-height: calc(100vh - 92px);
+	}
+
+	.service-order-assigned-row .col-auto {
+		width: 100%;
+		justify-content: flex-end;
+	}
+
+	.service-order-assigned-row .col {
+		width: 100%;
+	}
 }
 
 @media (max-width: 768px) and (orientation: portrait) {
+	.service-orders-board {
+		grid-template-columns: 1fr;
+	}
+
 	.cotizacion-view .table-responsive {
 		display: none;
 	}
@@ -211,5 +424,28 @@
 
 	.cotizacion-view #openAddSO {
 		width: 100%;
+	}
+
+	.service-order-assigned-row .col-auto {
+		width: 100%;
+		justify-content: flex-end;
+	}
+
+	.service-order-assigned-row .col {
+		width: 100%;
+	}
+
+	.service-orders-filters-float {
+		position: fixed;
+		top: 76px;
+		left: 16px;
+		right: 16px;
+		width: auto;
+		max-height: calc(100vh - 92px);
+		overflow: auto;
+	}
+
+	.service-orders-filters-card {
+		max-height: calc(100vh - 92px);
 	}
 }

@@ -19,7 +19,22 @@ router.post(
     controller.createServiceOrderResponse
 );
 
+router.patch(
+    "/:id/responses/:responseId",
+    authenticateToken,
+    uploadServiceOrderAttachments,
+    controller.updateServiceOrderResponse
+);
+
+router.delete(
+    "/:id/responses/:responseId",
+    authenticateToken,
+    controller.deleteServiceOrderResponse
+);
+
 router.get("/:id", authenticateToken, controller.getServiceOrder);
+
+router.patch("/:id/status", authenticateToken, controller.updateServiceOrderStatus);
 
 router.post("/from-ticket/:ticketId", authenticateToken, controller.createServiceOrderFromTicket);
 

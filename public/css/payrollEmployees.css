@@ -1,7 +1,77 @@
-.payroll-employees-view .table > :not(caption) > * > * {
+.payroll-employees-view .table> :not(caption)>*>* {
     vertical-align: middle;
 }
 
 .payroll-employees-view .badge {
     font-weight: 600;
+}
+
+.payroll-employees-view .modal-dialog.modal-form-compact {
+    max-width: 560px;
+    width: min(92vw, 560px);
+}
+
+@media (max-width: 767.98px) {
+    .payroll-employees-view .table-responsive {
+        overflow: visible;
+    }
+
+    .payroll-employees-view table,
+    .payroll-employees-view thead,
+    .payroll-employees-view tbody,
+    .payroll-employees-view tr,
+    .payroll-employees-view td {
+        display: block;
+        width: 100%;
+    }
+
+    .payroll-employees-view thead {
+        display: none;
+    }
+
+    .payroll-employees-view tbody tr {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 16px;
+        padding: 12px 14px;
+        margin-bottom: 12px;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+    }
+
+    .payroll-employees-view tbody td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        border: 0;
+        padding: 8px 0;
+        text-align: left;
+    }
+
+    .payroll-employees-view tbody td::before {
+        content: attr(data-label);
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: #6b7280;
+        flex: 0 0 42%;
+    }
+
+    .payroll-employees-view tbody td:last-child {
+        justify-content: flex-end;
+    }
+
+    .payroll-employees-view tbody td:last-child::before {
+        content: "";
+        flex: 0 0 0;
+    }
+
+    .payroll-employees-view .modal-dialog.modal-form-compact {
+        margin: 1rem auto;
+    }
+
+    .payroll-employees-view .modal-content {
+        border-radius: 1rem !important;
+    }
 }

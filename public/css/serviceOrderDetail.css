@@ -45,6 +45,32 @@
   background: #fff;
 }
 
+.service-order-response-edit-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #cfe2ff;
+  border-radius: 12px;
+  background: #f8fbff;
+}
+
+.service-order-response-edit-banner.d-none {
+  display: none;
+}
+
+.service-order-response-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.service-order-response-actions .btn {
+  min-width: 84px;
+}
+
 .service-order-response-item,
 .service-order-history-item {
   border: 1px solid #f0f0f0;
@@ -122,6 +148,32 @@
   color: #212529;
 }
 
+.service-order-status-form {
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  padding: 12px;
+  background: #fcfcfd;
+}
+
+.service-order-status-box {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.service-order-status-controls {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+}
+
+.service-order-status-controls .form-select {
+  min-width: 180px;
+}
+
 @media (max-width: 1300px) {
   .service-order-conversation-layout {
     grid-template-columns: 1fr;
@@ -153,6 +205,15 @@
 
   .service-order-view #backToServiceOrders,
   .service-order-view #soDetailOpenTicketBtn {
+    width: 100%;
+  }
+
+  .service-order-status-controls {
+    width: 100%;
+  }
+
+  .service-order-status-controls .form-select,
+  .service-order-status-controls .btn {
     width: 100%;
   }
 }
