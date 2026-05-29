@@ -7,7 +7,7 @@ let cachedPdfLogoPath = null;
 
 function decodeHtmlEntities(value = "") {
     const namedMap = {
-        "&nbsp;": " ",
+        "&nbsp;": "\u00A0", // Mantener como carácter no divisible en lugar de espacio regular
         "&amp;": "&",
         "&lt;": "<",
         "&gt;": ">",
@@ -115,6 +115,9 @@ function drawPdfPageDecorations(doc, { showTitle = false } = {}) {
         doc.image(logoPath, margin, 30, { width: 80 });
     }
 
+    // Resetear color a negro después de decoraciones
+    doc.fillColor("#111");
+
     if (!showTitle) {
         return;
     }
@@ -124,6 +127,9 @@ function drawPdfPageDecorations(doc, { showTitle = false } = {}) {
             width: pageWidth,
             align: "center"
         });
+
+    // Resetear color nuevamente después del título
+    doc.fillColor("#111");
 }
 
 function parseInlineStyleFromTag(tag = "") {
@@ -200,7 +206,9 @@ function sanitizeHtmlForPdf(html = "") {
         .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
         .replace(/<img\b[^>]*>/gi, "")
         .replace(/\s(data-[^=\s>]+|contenteditable|spellcheck|aria-[^=\s>]+)\s*=\s*(["']).*?\2/gi, "")
-        .replace(/\s{2,}/g, " ")
+        // TinyMCE suele representar enters manuales como <p>&nbsp;</p> o <div><br></div>.
+        // Convertir esos bloques vacíos a <br> permite preservar los saltos en el PDF.
+        .replace(/<(p|div)\b[^>]*>(?:\s|&nbsp;|&#160;|<br\s*\/?\s*>)*<\/\1>/gi, "<br>")
         .replace(/>\s+</g, "><");
 }
 
@@ -305,6 +313,7 @@ function htmlToStructuredPdfLines(html = "") {
 
             if (/^<\s*br\b/.test(tag)) {
                 flushLine({ forceBlank: false });
+                lines.push({ blank: true });
                 continue;
             }
 
@@ -410,8 +419,12 @@ function htmlToStructuredPdfLines(html = "") {
             continue;
         }
 
-        const text = decodeHtmlEntities(token).replace(/\s+/g, " ");
-        if (!text.trim()) {
+        let text = decodeHtmlEntities(token);
+
+        // Normalizar espacios múltiples simples a un solo espacio
+        text = text.replace(/[ \f\v]+/g, ' ').trim();
+
+        if (!text) {
             continue;
         }
 
@@ -553,6 +566,11 @@ function drawFormattedPdfLine(doc, line, { x, width, isLastLine = false }) {
 
         const fontSize = Number.isFinite(segment.fontSize) ? segment.fontSize : PDF_DEFAULTS.fontSize;
         const lineGap = Math.max(2, (fontSize * PDF_DEFAULTS.lineHeight) - fontSize);
+
+        // Asegurar que el color sea negro (#111) al inicio de cada segmento
+        if (index === 0) {
+            doc.fillColor("#111");
+        }
 
         doc
             .font(fontName)

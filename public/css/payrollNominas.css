@@ -1,7 +1,127 @@
-.payroll-nominas-view .table > :not(caption) > * > * {
+.payroll-nominas-view .table> :not(caption)>*>* {
     vertical-align: middle;
 }
 
 .payroll-nominas-view .badge {
     font-weight: 600;
+}
+
+.payroll-nominas-view {
+    position: relative;
+}
+
+.payroll-filters-toggle {
+    width: 52px;
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.payroll-filters-float {
+    position: absolute;
+    top: 72px;
+    right: 0;
+    z-index: 20;
+    width: min(280px, calc(100vw - 32px));
+}
+
+.payroll-filters-card {
+    backdrop-filter: blur(8px);
+}
+
+.payroll-nominas-view .modal-dialog.modal-form-compact {
+    max-width: 560px;
+    width: min(92vw, 560px);
+}
+
+.payroll-filter-control {
+    border-radius: 0.9rem;
+}
+
+@media (max-width: 991.98px) {
+    .payroll-filters-float {
+        position: static;
+        width: 100%;
+        margin-bottom: 1rem;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .payroll-nominas-view .table-responsive {
+        overflow: visible;
+    }
+
+    .payroll-nominas-view table,
+    .payroll-nominas-view thead,
+    .payroll-nominas-view tbody,
+    .payroll-nominas-view tr,
+    .payroll-nominas-view td {
+        display: block;
+        width: 100%;
+    }
+
+    .payroll-nominas-view thead {
+        display: none;
+    }
+
+    .payroll-nominas-view tbody tr {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 16px;
+        padding: 12px 14px;
+        margin-bottom: 12px;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+    }
+
+    .payroll-nominas-view tbody td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        border: 0;
+        padding: 8px 0;
+        text-align: left;
+    }
+
+    .payroll-nominas-view tbody td::before {
+        content: attr(data-label);
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: #6b7280;
+        flex: 0 0 42%;
+    }
+
+    .payroll-nominas-view tbody td:last-child {
+        justify-content: flex-end;
+    }
+
+    .payroll-nominas-view tbody td:last-child::before {
+        content: "";
+        flex: 0 0 0;
+    }
+
+    .payroll-filters-float {
+        position: fixed;
+        top: 76px;
+        left: 16px;
+        right: 16px;
+        width: auto;
+        max-height: calc(100vh - 92px);
+        overflow: auto;
+    }
+
+    .payroll-filters-card {
+        max-height: calc(100vh - 92px);
+    }
+
+    .payroll-nominas-view .modal-dialog.modal-form-compact {
+        margin: 1rem auto;
+    }
+
+    .payroll-nominas-view .modal-content {
+        border-radius: 1rem !important;
+    }
 }

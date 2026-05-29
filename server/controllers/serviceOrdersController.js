@@ -148,12 +148,250 @@ async function refreshTicketHasServiceOrder(connection, ticketId) {
     );
 }
 
+function parseAssignedUserIds(body) {
+    const rawValue = body?.assigned_user_ids ?? body?.assignedUserIds ?? body?.assigned_users ?? body?.id_assigned_user;
+
+    let values = [];
+
+    if (Array.isArray(rawValue)) {
+        values = rawValue;
+    } else if (typeof rawValue === "string") {
+        const text = rawValue.trim();
+        if (text) {
+            if (text.startsWith("[") && text.endsWith("]")) {
+                try {
+                    const parsed = JSON.parse(text);
+                    if (Array.isArray(parsed)) {
+                        values = parsed;
+                    }
+                } catch {
+                    values = text.split(",");
+                }
+            } else {
+                values = text.split(",");
+            }
+        }
+    } else if (rawValue !== null && rawValue !== undefined && rawValue !== "") {
+        values = [rawValue];
+    }
+
+    return Array.from(
+        new Set(
+            values
+                .map((value) => Number(value))
+                .filter((value) => Number.isInteger(value) && value > 0)
+        )
+    );
+}
+
+async function loadServiceOrderAssignments(connection, orderIds) {
+    const safeOrderIds = Array.from(new Set((Array.isArray(orderIds) ? orderIds : []).map((value) => Number(value)).filter((value) => Number.isInteger(value) && value > 0)));
+
+    if (!safeOrderIds.length) {
+        return new Map();
+    }
+
+    const [rows] = await connection.query(
+        `SELECT
+            soa.id_service_order,
+            soa.id_user,
+            COALESCE(u.name, u.username) AS user_name,
+            u.id_department,
+            r.name AS role_name
+         FROM service_order_assignments soa
+         LEFT JOIN users u ON u.id = soa.id_user
+         LEFT JOIN roles r ON r.id_role = u.id_role
+         WHERE soa.id_service_order IN (?)
+         ORDER BY soa.id_service_order_assignment ASC`,
+        [safeOrderIds]
+    );
+
+    const grouped = new Map();
+
+    for (const row of rows) {
+        const orderId = Number(row.id_service_order);
+        const current = grouped.get(orderId) || [];
+        current.push({
+            id_user: Number(row.id_user),
+            name: row.user_name || "Usuario",
+            id_department: Number(row.id_department || 0),
+            role_name: row.role_name || "",
+        });
+        grouped.set(orderId, current);
+    }
+
+    return grouped;
+}
+
+function summarizeAssignedUsers(assignments) {
+    const list = Array.isArray(assignments) ? assignments : [];
+    const ids = list.map((item) => Number(item.id_user)).filter((value) => Number.isInteger(value) && value > 0);
+    const names = list.map((item) => String(item.name || "Usuario").trim()).filter(Boolean);
+
+    return {
+        ids: Array.from(new Set(ids)),
+        names: Array.from(new Set(names)),
+        label: names.join(", ") || "Sin asignar",
+    };
+}
+
+function buildServiceOrderVisibilityClause(alias, visibility, userId) {
+    if (visibility.isAdmin) {
+        return { sql: "", params: [] };
+    }
+
+    const conditions = [`${alias}.id_created_by = ?`, `EXISTS (SELECT 1 FROM service_order_assignments soa_owner WHERE soa_owner.id_service_order = ${alias}.id_service_order AND soa_owner.id_user = ?)`];
+    const params = [userId, userId];
+
+    if (visibility.isEngineeringHead && visibility.idDepartment) {
+        conditions.push(`EXISTS (
+            SELECT 1
+            FROM service_order_assignments soa_eng
+            INNER JOIN users u_eng ON u_eng.id = soa_eng.id_user
+            LEFT JOIN roles r_eng ON r_eng.id_role = u_eng.id_role
+            WHERE soa_eng.id_service_order = ${alias}.id_service_order
+              AND (u_eng.id_department = ? OR LOWER(r_eng.name) LIKE ?)
+        )`);
+        params.push(visibility.idDepartment, "%ingenier%");
+    }
+
+    return {
+        sql: ` AND (${conditions.join(" OR ")})`,
+        params,
+    };
+}
+
+async function getServiceOrderAccessContext(connection, orderId, userId) {
+    const safeOrderId = Number(orderId || 0);
+    const safeUserId = Number(userId || 0);
+    const visibility = await getUserVisibilityScope(safeUserId);
+
+    const [orderRows] = await connection.query(
+        `SELECT id_service_order, id_created_by, id_assigned_user, id_ticket, order_number, status
+         FROM service_orders
+         WHERE id_service_order = ?
+         LIMIT 1`,
+        [safeOrderId]
+    );
+
+    if (!orderRows.length) {
+        return { found: false };
+    }
+
+    const [assignmentRows] = await connection.query(
+        `SELECT
+            soa.id_user,
+            COALESCE(u.name, u.username) AS user_name,
+            u.id_department,
+            r.name AS role_name
+         FROM service_order_assignments soa
+         LEFT JOIN users u ON u.id = soa.id_user
+         LEFT JOIN roles r ON r.id_role = u.id_role
+         WHERE soa.id_service_order = ?
+         ORDER BY soa.id_service_order_assignment ASC`,
+        [safeOrderId]
+    );
+
+    const assignmentSummary = summarizeAssignedUsers(
+        assignmentRows.map((row) => ({
+            id_user: row.id_user,
+            name: row.user_name,
+            id_department: row.id_department,
+            role_name: row.role_name,
+        }))
+    );
+
+    const isCreator = Number(orderRows[0].id_created_by || 0) === safeUserId;
+    const isAssigned = assignmentSummary.ids.includes(safeUserId);
+    const isEngineeringMatch = visibility.isEngineeringHead && assignmentRows.some((row) => {
+        const departmentMatch = Number(row.id_department || 0) === Number(visibility.idDepartment || 0);
+        const roleMatch = normalizeText(row.role_name).includes("ingenier");
+        return departmentMatch || roleMatch;
+    });
+
+    return {
+        found: true,
+        order: orderRows[0],
+        assignments: assignmentRows,
+        assignedUserIds: assignmentSummary.ids,
+        assignedUserNames: assignmentSummary.names,
+        assignedUsersLabel: assignmentSummary.label,
+        isCreator,
+        isAssigned,
+        isEngineeringMatch,
+        canAccessDetail: visibility.isAdmin || isCreator || isAssigned || isEngineeringMatch,
+        canEdit: isCreator,
+        canDelete: isCreator || isAssigned,
+        canChangeStatus: visibility.isAdmin || isCreator || isAssigned || isEngineeringMatch,
+    };
+}
+
+async function enforceServiceOrderPermission(connection, orderId, userId, permissionKey, forbiddenMessage) {
+    const accessContext = await getServiceOrderAccessContext(connection, orderId, userId);
+
+    if (!accessContext.found) {
+        return { ok: false, status: 404, message: "Orden no encontrada" };
+    }
+
+    if (!accessContext[permissionKey]) {
+        return { ok: false, status: 403, message: forbiddenMessage };
+    }
+
+    return { ok: true, accessContext };
+}
+
+async function syncServiceOrderAssignments(connection, orderId, assignedUserIds, auditUserId) {
+    const safeOrderId = Number(orderId || 0);
+    const safeAuditUserId = Number(auditUserId || 0);
+    const uniqueUserIds = Array.from(new Set((Array.isArray(assignedUserIds) ? assignedUserIds : []).map((value) => Number(value)).filter((value) => Number.isInteger(value) && value > 0)));
+
+    await connection.query(
+        `DELETE FROM service_order_assignments
+         WHERE id_service_order = ?`,
+        [safeOrderId]
+    );
+
+    if (!uniqueUserIds.length) {
+        await connection.query(
+            `UPDATE service_orders
+             SET id_assigned_user = NULL
+             WHERE id_service_order = ?`,
+            [safeOrderId]
+        );
+        return { primaryAssignedUserId: null, assignedUserIds: [] };
+    }
+
+    const primaryAssignedUserId = uniqueUserIds[0];
+
+    await connection.query(
+        `UPDATE service_orders
+         SET id_assigned_user = ?
+         WHERE id_service_order = ?`,
+        [primaryAssignedUserId, safeOrderId]
+    );
+
+    for (const userId of uniqueUserIds) {
+        await connection.query(
+            `INSERT INTO service_order_assignments
+                (id_service_order, id_user, assigned_by)
+             VALUES (?, ?, ?)`,
+            [safeOrderId, userId, safeAuditUserId || null]
+        );
+    }
+
+    return {
+        primaryAssignedUserId,
+        assignedUserIds: uniqueUserIds,
+    };
+}
+
 exports.getServiceOrders = async (req, res) => {
     try {
         const { search = "", status = "", priority = "", id_ticket = "", date_from = "", date_to = "" } = req.query;
 
         const authUserId = Number(req.auth?.sub || 0);
         const visibility = await getUserVisibilityScope(authUserId);
+        const visibilityClause = buildServiceOrderVisibilityClause("so", visibility, authUserId);
 
         let query = `
             SELECT
@@ -195,9 +433,17 @@ exports.getServiceOrders = async (req, res) => {
                     OR p.company LIKE ?
                     OR so.service_type LIKE ?
                     OR so.description LIKE ?
+                    OR COALESCE(uc.name, uc.username) LIKE ?
+                    OR EXISTS (
+                        SELECT 1
+                        FROM service_order_assignments soa_search
+                        INNER JOIN users u_search ON u_search.id = soa_search.id_user
+                        WHERE soa_search.id_service_order = so.id_service_order
+                          AND COALESCE(u_search.name, u_search.username) LIKE ?
+                    )
                 )
             `;
-            params.push(searchTerm, searchTerm, searchTerm, searchTerm, searchTerm);
+            params.push(searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm);
         }
 
         if (status) {
@@ -215,14 +461,9 @@ exports.getServiceOrders = async (req, res) => {
             params.push(Number(id_ticket));
         }
 
-        if (!visibility.isAdmin && authUserId) {
-            if (visibility.isEngineeringHead && visibility.idDepartment) {
-                query += " AND (ua.id_department = ? OR LOWER(rua.name) LIKE ?)";
-                params.push(visibility.idDepartment, "%ingenier%");
-            } else {
-                query += " AND so.id_assigned_user = ?";
-                params.push(authUserId);
-            }
+        if (visibilityClause.sql) {
+            query += visibilityClause.sql;
+            params.push(...visibilityClause.params);
         }
 
         if (date_from) {
@@ -238,6 +479,26 @@ exports.getServiceOrders = async (req, res) => {
         query += " ORDER BY so.id_service_order DESC";
 
         const [rows] = await db.query(query, params);
+
+        const assignmentMap = await loadServiceOrderAssignments(
+            db,
+            rows.map((row) => Number(row.id_service_order))
+        );
+
+        for (const row of rows) {
+            const assignedUsers = assignmentMap.get(Number(row.id_service_order)) || [];
+            const summary = summarizeAssignedUsers(assignedUsers);
+            row.assigned_user_ids = summary.ids;
+            row.assigned_users = summary.names;
+            row.assigned_users_label = summary.label;
+            row.can_edit = visibility.isAdmin || Number(row.id_created_by || 0) === authUserId;
+            row.can_delete = row.can_edit;
+            row.can_change_status = visibility.isAdmin || row.can_edit || summary.ids.includes(authUserId);
+            if (!assignedUsers.length && row.assigned_user) {
+                row.assigned_users_label = String(row.assigned_user);
+            }
+        }
+
         res.json({ success: true, data: rows });
     } catch (error) {
         console.error("Error listando ordenes de servicio:", error);
@@ -248,6 +509,17 @@ exports.getServiceOrders = async (req, res) => {
 exports.getServiceOrder = async (req, res) => {
     try {
         const id = Number(req.params.id);
+        const authUserId = Number(req.auth?.sub || 0);
+
+        const accessContext = await getServiceOrderAccessContext(db, id, authUserId);
+
+        if (!accessContext.found) {
+            return res.status(404).json({ success: false, message: "Orden no encontrada" });
+        }
+
+        if (!accessContext.canAccessDetail) {
+            return res.status(403).json({ success: false, message: "No tienes permiso para ver esta orden" });
+        }
 
         const [rows] = await db.query(
             `SELECT
@@ -274,6 +546,10 @@ exports.getServiceOrder = async (req, res) => {
             LIMIT 1`,
             [id]
         );
+
+        const assignmentMap = await loadServiceOrderAssignments(db, [id]);
+        const assignedUsers = assignmentMap.get(id) || [];
+        const summary = summarizeAssignedUsers(assignedUsers);
 
         if (!rows.length) {
             return res.status(404).json({ success: false, message: "Orden no encontrada" });
@@ -326,18 +602,34 @@ exports.getServiceOrder = async (req, res) => {
             [id]
         );
 
+        rows[0].assigned_user_ids = summary.ids;
+        rows[0].assigned_users = summary.names;
+        rows[0].assigned_users_label = summary.label;
+        rows[0].can_access_detail = accessContext.canAccessDetail;
+        rows[0].can_edit = accessContext.canEdit;
+        rows[0].can_delete = accessContext.canDelete;
+        rows[0].can_change_status = accessContext.canChangeStatus;
+
         res.json({
             success: true,
             data: {
                 ...rows[0],
                 responses: responses.map((response) => ({
                     ...response,
+                    can_edit_response: Number(response.id_user) === authUserId || accessContext.isCreator,
+                    can_delete_response: Number(response.id_user) === authUserId || accessContext.isCreator,
                     attachments: mergeStoredAttachments(
                         response.attachment,
                         (responseAttachments.get(Number(response.id_service_order_response)) || []).map((item) => item.file_path)
                     ),
                 })),
                 history,
+                permissions: {
+                    can_access_detail: accessContext.canAccessDetail,
+                    can_edit: accessContext.canEdit,
+                    can_delete: accessContext.canDelete,
+                    can_change_status: accessContext.canChangeStatus,
+                },
             },
         });
     } catch (error) {
@@ -382,6 +674,12 @@ exports.createServiceOrderResponse = async (req, res) => {
             return res.status(404).json({ success: false, message: "Orden no encontrada" });
         }
 
+        const accessContext = await getServiceOrderAccessContext(connection, orderId, userId);
+        if (!accessContext.canAccessDetail) {
+            await connection.rollback();
+            return res.status(403).json({ success: false, message: "No tienes permiso para responder esta orden" });
+        }
+
         const [responseResult] = await connection.query(
             `INSERT INTO service_order_responses
                 (id_service_order, id_user, message, attachment)
@@ -409,6 +707,165 @@ exports.createServiceOrderResponse = async (req, res) => {
     }
 };
 
+exports.updateServiceOrderResponse = async (req, res) => {
+    const connection = await db.getConnection();
+
+    try {
+        await connection.beginTransaction();
+
+        const orderId = Number(req.params.id);
+        const responseId = Number(req.params.responseId);
+        const message = String(req.body?.message || "").trim();
+        const userId = Number(req.auth?.sub || req.body?.id_user || 1);
+        const uploadedFiles = Array.isArray(req.files)
+            ? req.files
+            : (req.files && typeof req.files === "object" ? Object.values(req.files).flat() : []);
+        const newAttachments = mergeStoredAttachments(
+            buildUploadedPaths(req, "service_order_attachments"),
+            req.body?.attachments,
+            req.body?.attachment
+        );
+
+        if (!orderId || !responseId || (!message && !newAttachments.length)) {
+            await connection.rollback();
+            return res.status(400).json({ success: false, message: "La orden, el mensaje y/o adjuntos son obligatorios" });
+        }
+
+        const [responseRows] = await connection.query(
+            `SELECT id_service_order_response, id_service_order, id_user, message, attachment
+             FROM service_order_responses
+             WHERE id_service_order_response = ?
+               AND id_service_order = ?
+             LIMIT 1`,
+            [responseId, orderId]
+        );
+
+        const response = responseRows[0];
+        if (!response) {
+            await connection.rollback();
+            return res.status(404).json({ success: false, message: "Respuesta no encontrada" });
+        }
+
+        const accessContext = await getServiceOrderAccessContext(connection, orderId, userId);
+        if (!accessContext.canAccessDetail) {
+            await connection.rollback();
+            return res.status(403).json({ success: false, message: "No tienes permiso para editar este mensaje" });
+        }
+
+        const isAuthor = Number(response.id_user) === userId;
+        const isCreator = Boolean(accessContext.isCreator);
+        if (!isAuthor && !isCreator) {
+            await connection.rollback();
+            return res.status(403).json({ success: false, message: "Solo el autor del mensaje o el creador de la orden puede editarlo" });
+        }
+
+        const [existingAttachments] = await connection.query(
+            `SELECT file_path
+             FROM service_order_response_attachments
+             WHERE id_service_order_response = ?
+             ORDER BY id_service_order_response_attachment ASC`,
+            [responseId]
+        );
+
+        const existingAttachmentPaths = existingAttachments.map((item) => item.file_path);
+        const nextAttachment = existingAttachmentPaths[0] || newAttachments[0] || response.attachment || null;
+
+        await connection.query(
+            `UPDATE service_order_responses
+             SET message = ?, attachment = ?
+             WHERE id_service_order_response = ?`,
+            [message || null, nextAttachment, responseId]
+        );
+
+        if (newAttachments.length) {
+            await insertServiceOrderResponseAttachments(connection, responseId, newAttachments, uploadedFiles);
+        }
+
+        await connection.query(
+            `INSERT INTO service_order_history
+                (id_service_order, id_user, field_changed, old_value, new_value, description)
+             VALUES (?, ?, ?, ?, ?, ?)` ,
+            [orderId, userId, "response", response.message || null, message || null, "Se edito una respuesta de la orden de servicio"]
+        );
+
+        await connection.commit();
+        res.json({ success: true });
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error actualizando respuesta de la orden de servicio:", error);
+        res.status(500).json({ success: false, message: "Error del servidor" });
+    } finally {
+        connection.release();
+    }
+};
+
+exports.deleteServiceOrderResponse = async (req, res) => {
+    const connection = await db.getConnection();
+
+    try {
+        await connection.beginTransaction();
+
+        const orderId = Number(req.params.id);
+        const responseId = Number(req.params.responseId);
+        const userId = Number(req.auth?.sub || 0);
+
+        if (!orderId || !responseId) {
+            await connection.rollback();
+            return res.status(400).json({ success: false, message: "Identificadores inválidos" });
+        }
+
+        const [responseRows] = await connection.query(
+            `SELECT id_service_order_response, id_service_order, id_user, message
+             FROM service_order_responses
+             WHERE id_service_order_response = ?
+               AND id_service_order = ?
+             LIMIT 1`,
+            [responseId, orderId]
+        );
+
+        const response = responseRows[0];
+        if (!response) {
+            await connection.rollback();
+            return res.status(404).json({ success: false, message: "Respuesta no encontrada" });
+        }
+
+        const accessContext = await getServiceOrderAccessContext(connection, orderId, userId);
+        if (!accessContext.canAccessDetail) {
+            await connection.rollback();
+            return res.status(403).json({ success: false, message: "No tienes permiso para eliminar este mensaje" });
+        }
+
+        const isAuthor = Number(response.id_user) === userId;
+        const isCreator = Boolean(accessContext.isCreator);
+        if (!isAuthor && !isCreator) {
+            await connection.rollback();
+            return res.status(403).json({ success: false, message: "Solo el autor del mensaje o el creador de la orden puede eliminarlo" });
+        }
+
+        await connection.query(
+            `DELETE FROM service_order_responses
+             WHERE id_service_order_response = ?`,
+            [responseId]
+        );
+
+        await connection.query(
+            `INSERT INTO service_order_history
+                (id_service_order, id_user, field_changed, old_value, new_value, description)
+             VALUES (?, ?, ?, ?, ?, ?)` ,
+            [orderId, userId, "response", response.message || null, null, "Se elimino una respuesta de la orden de servicio"]
+        );
+
+        await connection.commit();
+        res.json({ success: true });
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error eliminando respuesta de la orden de servicio:", error);
+        res.status(500).json({ success: false, message: "Error del servidor" });
+    } finally {
+        connection.release();
+    }
+};
+
 exports.createServiceOrder = async (req, res) => {
     const connection = await db.getConnection();
 
@@ -419,7 +876,6 @@ exports.createServiceOrder = async (req, res) => {
             id_ticket = null,
             id_prospect,
             id_created_by,
-            id_assigned_user,
             service_type,
             description,
             priority = "medio",
@@ -427,6 +883,7 @@ exports.createServiceOrder = async (req, res) => {
             start_date = null,
             estimated_delivery = null,
         } = req.body;
+        const assignedUserIds = parseAssignedUserIds(req.body);
         const uploadedFiles = Array.isArray(req.files)
             ? req.files
             : (req.files && typeof req.files === "object" ? Object.values(req.files).flat() : []);
@@ -505,7 +962,7 @@ exports.createServiceOrder = async (req, res) => {
                 safeTicketId,
                 Number(id_prospect),
                 Number(id_created_by || req.auth?.sub || 1),
-                id_assigned_user ? Number(id_assigned_user) : null,
+                assignedUserIds[0] || null,
                 String(service_type).trim(),
                 description || null,
                 String(priority).toLowerCase(),
@@ -513,6 +970,13 @@ exports.createServiceOrder = async (req, res) => {
                 start_date || null,
                 estimated_delivery || null,
             ]
+        );
+
+        await syncServiceOrderAssignments(
+            connection,
+            result.insertId,
+            assignedUserIds,
+            Number(id_created_by || req.auth?.sub || 1)
         );
 
         const initialMessage = String(description || "").trim();
@@ -575,13 +1039,13 @@ exports.createServiceOrderFromTicket = async (req, res) => {
         const createdBy = Number(req.auth?.sub || 1);
         const {
             service_type,
-            id_assigned_user = null,
             description = null,
             priority = "medio",
             status = "pendiente",
             start_date = null,
             estimated_delivery = null,
         } = req.body || {};
+        const assignedUserIds = parseAssignedUserIds(req.body);
 
         if (!ticketId) {
             await connection.rollback();
@@ -634,7 +1098,7 @@ exports.createServiceOrderFromTicket = async (req, res) => {
                 ticketId,
                 Number(ticket.id_prospect),
                 createdBy,
-                id_assigned_user ? Number(id_assigned_user) : null,
+                assignedUserIds[0] || null,
                 serviceTypeValue,
                 descriptionValue,
                 String(priority || ticket.priority || "medio").toLowerCase(),
@@ -643,6 +1107,8 @@ exports.createServiceOrderFromTicket = async (req, res) => {
                 estimated_delivery || null,
             ]
         );
+
+        await syncServiceOrderAssignments(connection, result.insertId, assignedUserIds, createdBy);
 
         if (descriptionValue) {
             await connection.query(
@@ -684,10 +1150,10 @@ exports.updateServiceOrder = async (req, res) => {
         await connection.beginTransaction();
 
         const id = Number(req.params.id);
+        const authUserId = Number(req.auth?.sub || 0);
         const {
             id_ticket = null,
             id_prospect,
-            id_assigned_user,
             service_type,
             description,
             priority,
@@ -695,10 +1161,24 @@ exports.updateServiceOrder = async (req, res) => {
             start_date,
             estimated_delivery,
         } = req.body;
+        const assignedUserIds = parseAssignedUserIds(req.body);
 
         if (!id_prospect || !service_type || !priority || !status) {
             await connection.rollback();
             return res.status(400).json({ success: false, message: "Datos incompletos" });
+        }
+
+        const permission = await enforceServiceOrderPermission(
+            connection,
+            id,
+            authUserId,
+            "canEdit",
+            "Solo el creador puede editar la orden de servicio"
+        );
+
+        if (!permission.ok) {
+            await connection.rollback();
+            return res.status(permission.status).json({ success: false, message: permission.message });
         }
 
         const [orderRows] = await connection.query(
@@ -778,7 +1258,7 @@ exports.updateServiceOrder = async (req, res) => {
             [
                 safeTicketId,
                 Number(id_prospect),
-                id_assigned_user ? Number(id_assigned_user) : null,
+                assignedUserIds[0] || null,
                 String(service_type).trim(),
                 description || null,
                 String(priority).toLowerCase(),
@@ -794,6 +1274,8 @@ exports.updateServiceOrder = async (req, res) => {
             return res.status(404).json({ success: false, message: "Orden no encontrada" });
         }
 
+        await syncServiceOrderAssignments(connection, id, assignedUserIds, authUserId);
+
         if (previousTicketId && previousTicketId !== safeTicketId) {
             await refreshTicketHasServiceOrder(connection, previousTicketId);
         }
@@ -806,7 +1288,7 @@ exports.updateServiceOrder = async (req, res) => {
         const changes = [
             ["id_ticket", existingOrder.id_ticket, safeTicketId],
             ["id_prospect", existingOrder.id_prospect, id_prospect],
-            ["id_assigned_user", existingOrder.id_assigned_user, id_assigned_user || null],
+            ["id_assigned_user", existingOrder.id_assigned_user, assignedUserIds[0] || null],
             ["service_type", existingOrder.service_type, service_type],
             ["description", existingOrder.description, description || null],
             ["priority", existingOrder.priority, String(priority).toLowerCase()],
@@ -881,12 +1363,106 @@ exports.updateServiceOrder = async (req, res) => {
     }
 };
 
+exports.updateServiceOrderStatus = async (req, res) => {
+    const connection = await db.getConnection();
+
+    try {
+        await connection.beginTransaction();
+
+        const id = Number(req.params.id);
+        const authUserId = Number(req.auth?.sub || 0);
+        const status = String(req.body?.status || "").trim().toLowerCase();
+        const allowedStatuses = ["pendiente", "activa", "completada", "cancelada"];
+
+        if (!allowedStatuses.includes(status)) {
+            await connection.rollback();
+            return res.status(400).json({ success: false, message: "Estatus invalido" });
+        }
+
+        const permission = await enforceServiceOrderPermission(
+            connection,
+            id,
+            authUserId,
+            "canChangeStatus",
+            "No tienes permiso para cambiar el estatus de esta orden"
+        );
+
+        if (!permission.ok) {
+            await connection.rollback();
+            return res.status(permission.status).json({ success: false, message: permission.message });
+        }
+
+        const [currentRows] = await connection.query(
+            `SELECT status, order_number
+             FROM service_orders
+             WHERE id_service_order = ?
+             LIMIT 1`,
+            [id]
+        );
+
+        if (!currentRows.length) {
+            await connection.rollback();
+            return res.status(404).json({ success: false, message: "Orden no encontrada" });
+        }
+
+        const currentStatus = String(currentRows[0].status || "").toLowerCase();
+        if (currentStatus === status) {
+            await connection.commit();
+            return res.json({ success: true, no_change: true });
+        }
+
+        await connection.query(
+            `UPDATE service_orders
+             SET status = ?
+             WHERE id_service_order = ?`,
+            [status, id]
+        );
+
+        await connection.query(
+            `INSERT INTO service_order_history
+                (id_service_order, id_user, field_changed, old_value, new_value, description)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [
+                id,
+                authUserId,
+                "status",
+                currentStatus || null,
+                status,
+                `Se actualizo el estatus de la orden ${currentRows[0].order_number || ""}`.trim(),
+            ]
+        );
+
+        await connection.commit();
+        res.json({ success: true });
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error actualizando estatus de orden de servicio:", error);
+        res.status(500).json({ success: false, message: "Error del servidor" });
+    } finally {
+        connection.release();
+    }
+};
+
 exports.deleteServiceOrder = async (req, res) => {
     const connection = await db.getConnection();
 
     try {
         const id = Number(req.params.id);
+        const authUserId = Number(req.auth?.sub || 0);
         await connection.beginTransaction();
+
+        const permission = await enforceServiceOrderPermission(
+            connection,
+            id,
+            authUserId,
+            "canDelete",
+            "Solo el creador puede eliminar la orden de servicio"
+        );
+
+        if (!permission.ok) {
+            await connection.rollback();
+            return res.status(permission.status).json({ success: false, message: permission.message });
+        }
 
         const [orderRows] = await connection.query(
             `SELECT id_ticket

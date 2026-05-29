@@ -1,9 +1,19 @@
 <div class="payroll-nominas-view">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
-        <div>
-            <h4 class="fw-semibold mb-1">Nominas</h4>
-            <small class="text-muted">Control de sueldos a deber y pagos por empleado.</small>
+    <div class="payroll-header-row d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <div class="d-flex align-items-center gap-3">
+            <button class="btn btn-light d-lg-none sidebar-mobile-toggle" id="mobileMenuBtn" type="button"
+                aria-label="Abrir menú lateral">
+                <i class="bi bi-list fs-4"></i>
+            </button>
+            <div>
+                <h4 class="fw-semibold mb-1">Nominas</h4>
+                <small class="text-muted">Control de sueldos a deber y pagos por empleado.</small>
+            </div>
         </div>
+        <button type="button" class="btn payroll-filters-toggle" id="payrollFiltersToggleBtn" aria-expanded="false"
+            aria-controls="payrollFiltersPanel" title="Filtros">
+            <i class="bi bi-funnel"></i>
+        </button>
     </div>
 
     <div class="row g-3 mb-4">
@@ -21,22 +31,40 @@
         </div>
     </div>
 
-    <div class="card border-0 shadow-sm rounded-4 p-3 p-md-4 mb-4">
-        <div class="row g-2 align-items-end">
-            <div class="col-12 col-md-2">
-                <label class="form-label mb-1">Empleado</label>
-                <select class="form-select" id="payrollChargesEmployeeFilter">
-                    <option value="">Todos</option>
-                </select>
+    <div class="payroll-filters-float d-none" id="payrollFiltersPanel" aria-hidden="true">
+        <div class="card border-0 shadow-lg rounded-4 p-3 p-md-4 payroll-filters-card">
+            <div class="mb-3">
+                <h6 class="fw-semibold mb-0">Filtros</h6>
             </div>
-            <div class="col-12 col-md-2">
-                <label class="form-label mb-1">Estatus</label>
-                <select class="form-select" id="payrollChargesStatusFilter">
-                    <option value="">Todos</option>
-                    <option value="Pendiente">Pendiente</option>
-                    <option value="Pagado Parcial">Pagado Parcial</option>
-                    <option value="Pagado">Pagado</option>
-                </select>
+
+            <div class="d-flex flex-column gap-3">
+                <div class="w-100">
+                    <label class="form-label mb-1">Empleado</label>
+                    <select class="form-select payroll-filter-control" id="payrollChargesEmployeeFilter">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div class="w-100">
+                    <label class="form-label mb-1">Estatus</label>
+                    <select class="form-select payroll-filter-control" id="payrollChargesStatusFilter">
+                        <option value="">Todos</option>
+                        <option value="Pendiente">Pendiente</option>
+                        <option value="Pagado Parcial">Pagado Parcial</option>
+                        <option value="Pagado">Pagado</option>
+                    </select>
+                </div>
+                <div class="w-100">
+                    <label class="form-label mb-1">Mes</label>
+                    <input type="month" class="form-control payroll-filter-control" id="payrollChargesMonthFilter">
+                </div>
+                <div class="w-100">
+                    <label class="form-label mb-1">Desde</label>
+                    <input type="date" class="form-control payroll-filter-control" id="payrollChargesDateFromFilter">
+                </div>
+                <div class="w-100">
+                    <label class="form-label mb-1">Hasta</label>
+                    <input type="date" class="form-control payroll-filter-control" id="payrollChargesDateToFilter">
+                </div>
             </div>
         </div>
     </div>
@@ -59,10 +87,11 @@
                 <tbody id="payrollChargesTableBody"></tbody>
             </table>
         </div>
+        <div id="payrollChargesPagination" class="d-flex justify-content-end align-items-center gap-2 mt-3"></div>
     </div>
 
     <div class="modal fade" id="payrollPaymentModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-form-compact">
             <div class="modal-content rounded-4">
                 <div class="modal-header">
                     <h5 class="modal-title">Registrar Pago de Nomina</h5>
@@ -107,7 +136,7 @@
     </div>
 
     <div class="modal fade" id="payrollPaymentHistoryModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable modal-form-compact">
             <div class="modal-content rounded-4">
                 <div class="modal-header">
                     <h5 class="modal-title">Historial de Pagos</h5>

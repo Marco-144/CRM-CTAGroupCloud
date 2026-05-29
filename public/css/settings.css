@@ -85,3 +85,75 @@
 .settings-view .btn-outline-danger:hover {
 	background-color: #fee2e2;
 }
+
+.settings-view .modal-dialog.modal-form-compact {
+	max-width: 560px;
+	width: min(92vw, 560px);
+}
+
+@media (max-width: 767.98px) {
+	.settings-view .modal-dialog.modal-form-compact {
+		margin: 1rem auto;
+	}
+
+	.settings-view .modal-content {
+		border-radius: 1rem !important;
+	}
+}
+
+@media (max-width: 767.98px) {
+	.settings-view .table-responsive {
+		overflow: visible;
+	}
+
+	.settings-view table,
+	.settings-view thead,
+	.settings-view tbody,
+	.settings-view tr,
+	.settings-view td {
+		display: block;
+		width: 100%;
+	}
+
+	.settings-view thead {
+		display: none;
+	}
+
+	.settings-view tbody tr {
+		background: #fff;
+		border: 1px solid #e5e7eb;
+		border-radius: 16px;
+		padding: 12px 14px;
+		margin-bottom: 12px;
+		box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+	}
+
+	.settings-view tbody td {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 12px;
+		border: 0;
+		padding: 8px 0;
+		text-align: left;
+	}
+
+	.settings-view tbody td::before {
+		content: attr(data-label);
+		font-size: 12px;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+		color: #6b7280;
+		flex: 0 0 42%;
+	}
+
+	.settings-view tbody td:last-child {
+		justify-content: flex-end;
+	}
+
+	.settings-view tbody td:last-child::before {
+		content: "";
+		flex: 0 0 0;
+	}
+}

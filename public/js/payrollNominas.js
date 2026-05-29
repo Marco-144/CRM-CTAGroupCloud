@@ -4,6 +4,11 @@
 
     const employeeFilter = document.getElementById("payrollChargesEmployeeFilter");
     const statusFilter = document.getElementById("payrollChargesStatusFilter");
+    const monthFilter = document.getElementById("payrollChargesMonthFilter");
+    const dateFromFilter = document.getElementById("payrollChargesDateFromFilter");
+    const dateToFilter = document.getElementById("payrollChargesDateToFilter");
+    const filtersToggleBtn = document.getElementById("payrollFiltersToggleBtn");
+    const filtersPanel = document.getElementById("payrollFiltersPanel");
     const refreshBtn = document.getElementById("refreshPayrollChargesBtn");
 
     const globalPendingKpi = document.getElementById("payrollGlobalPendingKpi");
@@ -26,6 +31,68 @@
     let chargesCache = [];
     let employeesCache = [];
     let historyChargeId = null;
+    let currentPage = 1;
+    const TABLE_PAGE_SIZE = 7;
+    const CARD_PAGE_SIZE = 5;
+    const paginationContainer = ensurePaginationContainer(tableBody, "payrollChargesPagination");
+
+    function isMobileVerticalView() {
+        return window.innerWidth <= 768 && window.innerHeight > window.innerWidth;
+    }
+
+    function getCurrentPageSize() {
+        return isMobileVerticalView() ? CARD_PAGE_SIZE : TABLE_PAGE_SIZE;
+    }
+
+    function ensurePaginationContainer(tableElement, containerId) {
+        let container = document.getElementById(containerId);
+
+        if (!container && tableElement) {
+            container = document.createElement("div");
+            container.id = containerId;
+            container.className = "d-flex justify-content-end align-items-center gap-2 mt-3";
+
+            const tableWrapper = tableElement.closest(".table-responsive") || tableElement.parentElement;
+            tableWrapper?.insertAdjacentElement("afterend", container);
+        }
+
+        return container;
+    }
+
+    function renderPagination(totalItems, rowsToRender) {
+        if (!paginationContainer) return;
+
+        const pageSize = getCurrentPageSize();
+        const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+        if (totalItems <= pageSize) {
+            paginationContainer.innerHTML = "";
+            return;
+        }
+
+        const prevDisabled = currentPage <= 1 ? "disabled" : "";
+        const nextDisabled = currentPage >= totalPages ? "disabled" : "";
+
+        paginationContainer.innerHTML = `
+            <button type="button" class="btn btn-sm btn-outline-secondary btn-anterior" ${prevDisabled} data-page-action="prev">Anterior</button>
+            <span class="small text-muted">Página ${currentPage} de ${totalPages}</span>
+            <button type="button" class="btn btn-sm btn-outline-secondary btn-siguiente" ${nextDisabled} data-page-action="next">Siguiente</button>
+        `;
+
+        paginationContainer.querySelector('[data-page-action="prev"]')?.addEventListener("click", () => {
+            if (currentPage > 1) {
+                currentPage -= 1;
+                renderCharges(rowsToRender);
+            }
+        });
+
+        paginationContainer.querySelector('[data-page-action="next"]')?.addEventListener("click", () => {
+            if (currentPage < totalPages) {
+                currentPage += 1;
+                renderCharges(rowsToRender);
+            }
+        });
+    }
 
     function escapeHTML(value) {
         return String(value ?? "")
@@ -79,26 +146,132 @@
         return '<span class="badge text-bg-danger">Pendiente</span>';
     }
 
+    function toDateKey(value) {
+        if (!value) return "";
+        const text = String(value).trim();
+        if (!text) return "";
+
+        if (text.length >= 10 && text.includes("-")) {
+            return text.slice(0, 10);
+        }
+
+        const parsed = new Date(text);
+        if (Number.isNaN(parsed.getTime())) {
+            return "";
+        }
+
+        return parsed.toISOString().slice(0, 10);
+    }
+
+    function getMonthBounds(monthValue) {
+        if (!monthValue) return null;
+
+        const [year, month] = String(monthValue).split("-").map(Number);
+        if (!year || !month) return null;
+
+        const start = new Date(year, month - 1, 1);
+        const end = new Date(year, month, 0);
+        return { start, end };
+    }
+
+    function applyChargeFilters() {
+        const employeeId = Number(employeeFilter?.value || 0);
+        const status = String(statusFilter?.value || "").trim();
+        const monthBounds = getMonthBounds(monthFilter?.value || "");
+        const dateFromKey = toDateKey(dateFromFilter?.value || "");
+        const dateToKey = toDateKey(dateToFilter?.value || "");
+
+        return chargesCache.filter((item) => {
+            if (employeeId && Number(item.id_payroll_employee) !== employeeId) {
+                return false;
+            }
+
+            if (status && String(item.status || "") !== status) {
+                return false;
+            }
+
+            const dueDateKey = toDateKey(item.due_date);
+
+            if (monthBounds && dueDateKey) {
+                const { start, end } = monthBounds;
+                const dueDate = new Date(`${dueDateKey}T00:00:00`);
+                if (dueDate < start || dueDate > end) {
+                    return false;
+                }
+            }
+
+            if (dateFromKey && dueDateKey && dueDateKey < dateFromKey) {
+                return false;
+            }
+
+            if (dateToKey && dueDateKey && dueDateKey > dateToKey) {
+                return false;
+            }
+
+            return true;
+        });
+    }
+
+    function applyFilters() {
+        currentPage = 1;
+        const filteredRows = applyChargeFilters();
+        renderCharges(filteredRows);
+        updateKpis(filteredRows);
+    }
+
+    function clearFilters() {
+        if (employeeFilter) employeeFilter.value = "";
+        if (statusFilter) statusFilter.value = "";
+        if (monthFilter) monthFilter.value = "";
+        if (dateFromFilter) dateFromFilter.value = "";
+        if (dateToFilter) dateToFilter.value = "";
+        applyFilters();
+    }
+
+    function setFiltersPanelVisible(visible) {
+        if (!filtersPanel || !filtersToggleBtn) return;
+
+        filtersPanel.classList.toggle("d-none", !visible);
+        filtersPanel.setAttribute("aria-hidden", visible ? "false" : "true");
+        filtersToggleBtn.setAttribute("aria-expanded", visible ? "true" : "false");
+    }
+
+    function toggleFiltersPanel() {
+        if (!filtersPanel) return;
+        setFiltersPanelVisible(filtersPanel.classList.contains("d-none"));
+    }
+
     function renderCharges(rows) {
         if (!rows.length) {
             tableBody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No hay cargos para mostrar.</td></tr>';
+            renderPagination(0, rows);
             return;
         }
 
-        tableBody.innerHTML = rows.map((item) => {
+        const pageSize = getCurrentPageSize();
+        const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+
+        if (currentPage > totalPages) {
+            currentPage = totalPages;
+        }
+
+        const start = (currentPage - 1) * pageSize;
+        const paginatedRows = rows.slice(start, start + pageSize);
+
+        tableBody.innerHTML = paginatedRows.map((item) => {
             const period = `${formatDate(item.period_start)} - ${formatDate(item.period_end)}`;
             const canPay = Number(item.pending_amount || 0) > 0;
 
             return `
                 <tr>
-                    <td>${escapeHTML(item.employee_name || "-")}</td>
-                    <td>${formatDate(item.due_date)}</td>
-                    <td>${period}</td>
-                    <td>${formatMoney(item.amount_net)}</td>
-                    <td>${formatMoney(item.paid_amount)}</td>
-                    <td>${formatMoney(item.pending_amount)}</td>
-                    <td>${statusBadge(item.status)}</td>
-                    <td class="text-end">
+                    <td data-label="Empleado">${escapeHTML(item.employee_name || "-")}</td>
+                    <td data-label="Vencimiento">${formatDate(item.due_date)}</td>
+                    <td data-label="Periodo">${period}</td>
+                    <td data-label="Monto">${formatMoney(item.amount_net)}</td>
+                    <td data-label="Pagado">${formatMoney(item.paid_amount)}</td>
+                    <td data-label="Pendiente">${formatMoney(item.pending_amount)}</td>
+                    <td data-label="Estatus">${statusBadge(item.status)}</td>
+                    <td class="text-end" data-label="Acciones">
                         <button class="btn btn-sm btn-outline-primary me-2 show-payroll-history" data-id="${item.id_payroll_charge}">
                             <i class="bi bi-clock-history"></i>
                         </button>
@@ -109,11 +282,13 @@
                 </tr>
             `;
         }).join("");
+
+        renderPagination(rows.length, rows);
     }
 
-    function updateKpis() {
-        const pendingAmount = chargesCache.reduce((acc, item) => acc + Number(item.pending_amount || 0), 0);
-        const pendingCount = chargesCache.filter((item) => Number(item.pending_amount || 0) > 0).length;
+    function updateKpis(data = chargesCache) {
+        const pendingAmount = data.reduce((acc, item) => acc + Number(item.pending_amount || 0), 0);
+        const pendingCount = data.filter((item) => Number(item.pending_amount || 0) > 0).length;
 
         globalPendingKpi.textContent = formatMoney(pendingAmount);
         pendingChargesKpi.textContent = String(pendingCount);
@@ -132,6 +307,7 @@
     }
 
     async function fetchCharges() {
+        currentPage = 1;
         const params = new URLSearchParams();
 
         if (employeeFilter.value) {
@@ -153,8 +329,7 @@
         }
 
         chargesCache = payload.data || [];
-        renderCharges(chargesCache);
-        updateKpis();
+        applyFilters();
     }
 
     function openPaymentModal(chargeId) {
@@ -255,12 +430,44 @@
 
     if (!tableBody || !paymentForm || !historyBody) return;
 
+    filtersToggleBtn?.addEventListener("click", (event) => {
+        event.stopPropagation();
+        toggleFiltersPanel();
+    });
+
+    filtersPanel?.addEventListener("click", (event) => {
+        event.stopPropagation();
+    });
+
+    document.addEventListener("click", (event) => {
+        if (!filtersPanel || filtersPanel.classList.contains("d-none")) {
+            return;
+        }
+
+        const clickedInside = filtersPanel.contains(event.target) || filtersToggleBtn?.contains(event.target);
+        if (!clickedInside) {
+            setFiltersPanelVisible(false);
+        }
+    });
+
     employeeFilter?.addEventListener("change", () => {
-        fetchCharges().catch((error) => showAlert(error.message));
+        applyFilters();
     });
 
     statusFilter?.addEventListener("change", () => {
-        fetchCharges().catch((error) => showAlert(error.message));
+        applyFilters();
+    });
+
+    monthFilter?.addEventListener("change", () => {
+        applyFilters();
+    });
+
+    dateFromFilter?.addEventListener("change", () => {
+        applyFilters();
+    });
+
+    dateToFilter?.addEventListener("change", () => {
+        applyFilters();
     });
 
     refreshBtn?.addEventListener("click", () => {
@@ -306,5 +513,19 @@
 
     Promise.all([fetchEmployees(), fetchCharges()]).catch((error) => {
         tableBody.innerHTML = `<tr><td colspan="8" class="text-center text-danger">${escapeHTML(error.message)}</td></tr>`;
+    });
+
+    setFiltersPanelVisible(false);
+
+    window.addEventListener("app:resize", () => {
+        applyFilters();
+    });
+
+    window.addEventListener("resize", () => {
+        applyFilters();
+    });
+
+    window.addEventListener("orientationchange", () => {
+        setTimeout(() => applyFilters(), 200);
     });
 })();

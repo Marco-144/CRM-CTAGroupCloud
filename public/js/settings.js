@@ -70,12 +70,12 @@
 
 			return `
 			<tr>
-				<td>${safeUsername}</td>
-				<td>${safeName}</td>
-				<td>${safeEmail}</td>
-				<td>${safeDepartment}</td>
-				<td>${safeRole}</td>
-				<td class="text-end">
+				<td data-label="Usuario">${safeUsername}</td>
+				<td data-label="Nombre">${safeName}</td>
+				<td data-label="Email">${safeEmail}</td>
+				<td data-label="Departamento">${safeDepartment}</td>
+				<td data-label="Rol">${safeRole}</td>
+				<td class="text-end" data-label="Acciones">
 					<button class="btn btn-sm btn-outline-secondary me-2 edit-user" data-id="${item.id}">
 						<i class="bi bi-pencil"></i>
 					</button>
